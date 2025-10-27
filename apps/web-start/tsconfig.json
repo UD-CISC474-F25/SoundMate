@@ -1,0 +1,11 @@
+{
+  "extends": "@repo/typescript-config/tanstack.json",
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "eslint.config.js",
+    "prettier.config.js",
+    "vite.config.js"
+  ],
+  "exclude": ["node_modules"]
+}
