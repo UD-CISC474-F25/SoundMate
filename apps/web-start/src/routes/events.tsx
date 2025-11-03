@@ -15,7 +15,7 @@ function EventsPage() {
               Find concerts and music events near you
             </p>
           </div>
-          <button className="px-6 py-2 bg-[#F6B93B] text-black rounded-full font-medium hover:opacity-90 transition-opacity">
+          <button className="px-6 py-2 bg-white text-black rounded-full font-medium hover:bg-gray-100 transition-colors">
             Create Event
           </button>
         </div>

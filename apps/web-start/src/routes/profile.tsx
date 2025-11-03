@@ -6,7 +6,6 @@ export const Route = createFileRoute('/profile')({
 });
 
 function ProfilePage() {
-  // TODO: Replace with actual user data from auth
   const mockUser = {
     name: 'Music Lover',
     school: 'University of Delaware',
