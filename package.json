@@ -15,13 +15,13 @@
     "db:seed": "turbo run db:seed"
   },
   "devDependencies": {
-    "prettier": "^3.6.2",
-    "turbo": "^2.5.6",
-    "prisma": "latest",
-    "typescript": "5.9.2",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
-    "tsx": "4.19.1"
+    "prettier": "^3.6.2",
+    "prisma": "latest",
+    "tsx": "4.19.1",
+    "turbo": "^2.5.6",
+    "typescript": "5.9.2"
   },
   "prisma": {
     "schema": "packages/database/prisma/schema.prisma",

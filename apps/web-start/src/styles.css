@@ -2,9 +2,7 @@
 
 body {
     @apply m-0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -12,4 +10,100 @@ body {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
         monospace;
+}
+
+@keyframes blink {
+    0%, 49% {
+        opacity: 1;
+    }
+    50%, 100% {
+        opacity: 0;
+    }
+}
+
+.animate-blink {
+    animation: blink 1s infinite;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+}
+
+.animate-fade-in-delay-1 {
+    opacity: 0;
+    animation: fadeIn 0.8s ease-out 0.3s forwards;
+}
+
+.animate-fade-in-delay-2 {
+    opacity: 0;
+    animation: fadeIn 0.8s ease-out 0.6s forwards;
+}
+
+.animate-fade-in-delay-3 {
+    opacity: 0;
+    animation: fadeIn 0.8s ease-out 0.9s forwards;
+}
+
+@keyframes rainbowSlide {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+.animate-rainbow-slide {
+    animation: rainbowSlide 3s ease-in-out infinite;
+}
+
+.animate-rainbow-slide-delay-1 {
+    animation: rainbowSlide 3s ease-in-out 0.5s infinite;
+}
+
+.animate-rainbow-slide-delay-2 {
+    animation: rainbowSlide 3s ease-in-out 1s infinite;
+}
+
+@keyframes aurora {
+    0% {
+        transform: translateX(-100%) translateY(-10%) rotate(0deg);
+    }
+    50% {
+        transform: translateX(100%) translateY(10%) rotate(5deg);
+    }
+    100% {
+        transform: translateX(-100%) translateY(-10%) rotate(0deg);
+    }
+}
+
+@keyframes auroraReverse {
+    0% {
+        transform: translateX(100%) translateY(10%) rotate(0deg);
+    }
+    50% {
+        transform: translateX(-100%) translateY(-10%) rotate(-5deg);
+    }
+    100% {
+        transform: translateX(100%) translateY(10%) rotate(0deg);
+    }
+}
+
+.animate-aurora {
+    animation: aurora 8s ease-in-out infinite;
+}
+
+.animate-aurora-reverse {
+    animation: auroraReverse 8s ease-in-out infinite;
 }
