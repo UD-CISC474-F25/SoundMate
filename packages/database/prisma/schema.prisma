@@ -66,15 +66,16 @@ model Artist {
 }
 
 model UserTopArtist {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  artistId  String   @map("artist_id")
+  id        String        @id @default(cuid())
+  userId    String        @map("user_id")
+  artistId  String        @map("artist_id")
   rank      Int
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  timeRange TimeRange     @default(LONG_TERM) @map("time_range")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artist    Artist        @relation(fields: [artistId], references: [id], onDelete: Cascade)
 
   @@unique([userId, artistId])
   @@index([userId, rank])
@@ -107,6 +108,7 @@ model Event {
   description   String?
   dateTime      DateTime?       @map("date_time")
   location      String?
+  musicTag      String?         @map("music_tag")
   visibility    EventVisibility @default(PRIVATE)
   maxAttendees  Int?            @map("max_attendees")
   createdAt     DateTime        @default(now()) @map("created_at")
@@ -169,4 +171,10 @@ enum AttendeeStatus {
   GOING
   MAYBE
   DECLINED
+}
+
+enum TimeRange {
+  SHORT_TERM
+  MEDIUM_TERM
+  LONG_TERM
 }
