@@ -4,7 +4,7 @@ import { JwtUser } from '../auth/jwt.strategy';
 
 @Injectable()
 export class ConnectionsService {
-    constructor(private prisma: PrismaService) {} // Will need to add SpotifyService here later
+    constructor(private prisma: PrismaService) {} 
 
     async findAll() {
     return this.prisma.connection.findMany();
