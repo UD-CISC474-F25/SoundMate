@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtUser } from '../auth/jwt.strategy';
-import { SpotifyService } from 'src/spotify/spotify.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService, private spotifyService: SpotifyService) {}
+  constructor(private prisma: PrismaService) {} // Will need to add SpotifyService here later
 
   async findAll() {
     return this.prisma.user.findMany();
