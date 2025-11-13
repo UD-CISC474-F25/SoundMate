@@ -37,6 +37,7 @@ export {
   EventAttendeeOut,
   EventCommentOut,
   EventCommentCreateIn,
+  EventCommentUpdateIn,
   EventsListFilter,
   EventVisibilityEnum,
   AttendeeStatusEnum,

@@ -114,6 +114,12 @@ export const EventCommentCreateIn = z.object({
 
 export type EventCommentCreateIn = z.infer<typeof EventCommentCreateIn>;
 
+export const EventCommentUpdateIn = z.object({
+  content: z.string().min(1).max(500),
+});
+
+export type EventCommentUpdateIn = z.infer<typeof EventCommentUpdateIn>;
+
 export const EventsListFilter = Pagination.extend({
   visibility: EventVisibilityEnum.optional(),
   creatorId: z.string().optional(),
