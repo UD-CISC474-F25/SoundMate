@@ -18,7 +18,7 @@ import { ZodValidationPipe } from '../pipes/zod-validation.pipe';
 import { EventCommentCreateIn, EventCommentUpdateIn } from '@repo/api';
 
 @Controller('events/:eventId/comments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)  
 export class CommentsController {
   constructor(
     private readonly commentsService: CommentsService,
