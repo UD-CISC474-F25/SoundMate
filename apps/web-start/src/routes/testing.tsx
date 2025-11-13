@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, ReactNode } from "react";
 
-const API = "http://localhost:3000"; // local backend url
+const API = "http://localhost:3000";
 const api = (path: string) => `${API}${path}`;
 
-export const Route = createFileRoute('/testing')({
+export const Route = createFileRoute("/testing")({
   component: TestingPage,
 });
 
@@ -17,7 +17,6 @@ export default function TestingPage() {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: body ? JSON.stringify(body) : undefined,
       });
@@ -29,7 +28,7 @@ export default function TestingPage() {
     }
   };
 
-  const Card = ({ title, children }: { title: React.ReactNode; children?: React.ReactNode }) => (
+  const Card = ({ title, children }: { title: string; children: ReactNode }) => (
     <div
       style={{
         border: "1px solid #ddd",
@@ -44,14 +43,14 @@ export default function TestingPage() {
     </div>
   );
 
-  const inputStyle: React.CSSProperties = {
+  const inputStyle = {
     marginBottom: "8px",
     padding: "6px 8px",
     width: "100%",
-    boxSizing: "border-box",
+    boxSizing: "border-box" as const,
   };
 
-  const buttonStyle: React.CSSProperties = {
+  const buttonStyle = {
     padding: "6px 12px",
     marginTop: "6px",
     cursor: "pointer",
@@ -60,32 +59,37 @@ export default function TestingPage() {
   return (
     <div style={{ padding: "24px", maxWidth: "600px", margin: "0 auto" }}>
       <h1>Backend Testing Sandbox</h1>
-      <p style={{ color: "#444" }}>
-        Use this page to manually test backend API operations during development.
-      </p>
 
       <Card title="Create Event">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             const f = e.target as any;
+
             callApi("POST", api("/events"), {
               title: f.title.value,
               description: f.description.value || null,
+              dateTime: new Date().toISOString(), 
+              location: f.location.value || null,
+              musicTag: f.musicTag.value || null,
+              artistId: f.artistId.value || null,
+              visibility: f.visibility.value,
+              maxAttendees: f.maxAttendees.value
+                ? Number(f.maxAttendees.value)
+                : null,
             });
           }}
         >
-          <input
-            name="title"
-            placeholder="Title"
-            style={inputStyle}
-            required
-          />
-          <input
-            name="description"
-            placeholder="Description"
-            style={inputStyle}
-          />
+          <input name="title" placeholder="Title (required)" style={inputStyle} required />
+          <input name="description" placeholder="Description" style={inputStyle} />
+          <input name="location" placeholder="Location" style={inputStyle} />
+          <input name="musicTag" placeholder="Music Tag" style={inputStyle} />
+          <input name="artistId" placeholder="Artist ID" style={inputStyle} />
+          <select name="visibility" style={inputStyle}>
+            <option value="PRIVATE">PRIVATE</option>
+            <option value="PUBLIC">PUBLIC</option>
+          </select>
+          <input name="maxAttendees" placeholder="Max attendees (positive int)" style={inputStyle} />
           <button style={buttonStyle}>Create</button>
         </form>
       </Card>
@@ -95,22 +99,33 @@ export default function TestingPage() {
           onSubmit={(e) => {
             e.preventDefault();
             const f = e.target as any;
+
             callApi("PATCH", api(`/events/${f.eventId.value}`), {
               title: f.title.value || undefined,
+              description: f.description.value || null,
+              dateTime: undefined,
+              location: f.location.value || null,
+              musicTag: f.musicTag.value || null,
+              artistId: f.artistId.value || null,
+              visibility: f.visibility.value || undefined,
+              maxAttendees: f.maxAttendees.value
+                ? Number(f.maxAttendees.value)
+                : null,
             });
           }}
         >
-          <input
-            name="eventId"
-            placeholder="Event ID"
-            style={inputStyle}
-            required
-          />
-          <input
-            name="title"
-            placeholder="New Title (optional)"
-            style={inputStyle}
-          />
+          <input name="eventId" placeholder="Event ID (required)" style={inputStyle} required />
+          <input name="title" placeholder="Title" style={inputStyle} />
+          <input name="description" placeholder="Description" style={inputStyle} />
+          <input name="location" placeholder="Location" style={inputStyle} />
+          <input name="musicTag" placeholder="Music Tag" style={inputStyle} />
+          <input name="artistId" placeholder="Artist ID" style={inputStyle} />
+          <select name="visibility" style={inputStyle}>
+            <option value="">(no change)</option>
+            <option value="PRIVATE">PRIVATE</option>
+            <option value="PUBLIC">PUBLIC</option>
+          </select>
+          <input name="maxAttendees" placeholder="Max attendees" style={inputStyle} />
           <button style={buttonStyle}>Update</button>
         </form>
       </Card>
@@ -123,12 +138,7 @@ export default function TestingPage() {
             callApi("DELETE", api(`/events/${f.eventId.value}`));
           }}
         >
-          <input
-            name="eventId"
-            placeholder="Event ID"
-            style={inputStyle}
-            required
-          />
+          <input name="eventId" placeholder="Event ID" style={inputStyle} required />
           <button style={buttonStyle}>Delete</button>
         </form>
       </Card>
@@ -138,23 +148,20 @@ export default function TestingPage() {
           onSubmit={(e) => {
             e.preventDefault();
             const f = e.target as any;
+
             callApi("POST", api(`/events/${f.eventId.value}/rsvp`), {
               status: f.status.value,
             });
           }}
         >
-          <input
-            name="eventId"
-            placeholder="Event ID"
-            style={inputStyle}
-            required
-          />
-          <select name="status" style={inputStyle}>
+          <input name="eventId" placeholder="Event ID" style={inputStyle} required />
+          <select name="status" style={inputStyle} required>
             <option value="GOING">GOING</option>
             <option value="MAYBE">MAYBE</option>
             <option value="DECLINED">DECLINED</option>
+            <option value="INVITED">INVITED</option>
           </select>
-          <button style={buttonStyle}>RSVP</button>
+          <button style={buttonStyle}>Submit RSVP</button>
         </form>
       </Card>
 
@@ -163,23 +170,14 @@ export default function TestingPage() {
           onSubmit={(e) => {
             e.preventDefault();
             const f = e.target as any;
+
             callApi("POST", api(`/events/${f.eventId.value}/comments`), {
               content: f.content.value,
             });
           }}
         >
-          <input
-            name="eventId"
-            placeholder="Event ID"
-            style={inputStyle}
-            required
-          />
-          <input
-            name="content"
-            placeholder="Comment text"
-            style={inputStyle}
-            required
-          />
+          <input name="eventId" placeholder="Event ID" style={inputStyle} required />
+          <input name="content" placeholder="Comment text" style={inputStyle} required />
           <button style={buttonStyle}>Add Comment</button>
         </form>
       </Card>
@@ -189,33 +187,17 @@ export default function TestingPage() {
           onSubmit={(e) => {
             e.preventDefault();
             const f = e.target as any;
+
             callApi(
               "PATCH",
-              api(
-                `/events/${f.eventId.value}/comments/${f.commentId.value}`
-              ),
+              api(`/events/${f.eventId.value}/comments/${f.commentId.value}`),
               { content: f.content.value }
             );
           }}
         >
-          <input
-            name="eventId"
-            placeholder="Event ID"
-            style={inputStyle}
-            required
-          />
-          <input
-            name="commentId"
-            placeholder="Comment ID"
-            style={inputStyle}
-            required
-          />
-          <input
-            name="content"
-            placeholder="New text"
-            style={inputStyle}
-            required
-          />
+          <input name="eventId" placeholder="Event ID" style={inputStyle} required />
+          <input name="commentId" placeholder="Comment ID" style={inputStyle} required />
+          <input name="content" placeholder="New text" style={inputStyle} required />
           <button style={buttonStyle}>Edit Comment</button>
         </form>
       </Card>
@@ -225,26 +207,15 @@ export default function TestingPage() {
           onSubmit={(e) => {
             e.preventDefault();
             const f = e.target as any;
+
             callApi(
               "DELETE",
-              api(
-                `/events/${f.eventId.value}/comments/${f.commentId.value}`
-              )
+              api(`/events/${f.eventId.value}/comments/${f.commentId.value}`)
             );
           }}
         >
-          <input
-            name="eventId"
-            placeholder="Event ID"
-            style={inputStyle}
-            required
-          />
-          <input
-            name="commentId"
-            placeholder="Comment ID"
-            style={inputStyle}
-            required
-          />
+          <input name="eventId" placeholder="Event ID" style={inputStyle} required />
+          <input name="commentId" placeholder="Comment ID" style={inputStyle} required />
           <button style={buttonStyle}>Delete Comment</button>
         </form>
       </Card>
