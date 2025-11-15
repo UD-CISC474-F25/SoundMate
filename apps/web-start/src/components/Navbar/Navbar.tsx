@@ -14,9 +14,12 @@ export function Navbar() {
     logout: auth0Logout
   } = useAuth0();
 
+  // Hide navbar links on onboarding page
+  const isOnboardingPage = typeof window !== 'undefined' && window.location.pathname === '/onboarding';
+
   const handleLogin = () => {
     loginWithRedirect({
-      appState: { returnTo: '/home' }
+      appState: { returnTo: '/discover' }
     });
   };
 
@@ -69,7 +72,7 @@ export function Navbar() {
         </button>
 
         <div className="hidden md:flex items-center gap-6">
-          {isAuthenticated ? (
+          {isAuthenticated && !isOnboardingPage ? (
             <>
               <Link
                 to="/"

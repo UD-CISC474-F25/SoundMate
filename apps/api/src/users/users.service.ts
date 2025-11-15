@@ -100,6 +100,7 @@ export class UsersService {
         bio: true,
         spotifyProfileUrl: true,
         showSpotifyProfile: true,
+        isOnboarded: true,
         createdAt: true,
         updatedAt: true,
         lastLogin: true,

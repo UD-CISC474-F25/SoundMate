@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtUser } from './jwt.strategy';
 
@@ -60,7 +60,7 @@ export class AuthService {
       },
     });
 
-    const requiresOnboarding = user.username.startsWith('user_') || !user.displayName;
+    const requiresOnboarding = !user.isOnboarded;
 
     return {
       user,
@@ -68,21 +68,13 @@ export class AuthService {
     };
   }
 
-  async completeOnboarding(userId: string, username: string, displayName: string, bio?: string) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { username },
-    });
-
-    if (existingUser && existingUser.id !== userId) {
-      throw new ConflictException('Username is already taken');
-    }
-
+  async completeOnboarding(userId: string, displayName: string, bio?: string) {
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        username,
         displayName,
         bio,
+        isOnboarded: true,
       },
     });
 

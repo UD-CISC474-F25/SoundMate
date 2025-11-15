@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Check, Clock, Music, Search, UserCheck, UserPlus, X } from 'lucide-react';
+import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
 
 export const Route = createFileRoute('/discover')({
   component: FriendsDiscoveryPage,
@@ -31,6 +32,9 @@ interface UserProfile {
 }
 
 function FriendsDiscoveryPage() {
+  // Check if user needs onboarding and redirect if needed
+  useOnboardingRedirect();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [users, setUsers] = useState<Array<UserProfile>>([

@@ -10,26 +10,31 @@ import { routeTree } from './routeTree.gen';
 export const getRouter = () => {
   const rqContext = TanstackQuery.getContext();
 
-  // Create the redirect URI based on the current origin, which may be undefined during SSR
-  const redirect_uri =
-    typeof window !== 'undefined'
-      ? window.location.origin + '/home'
-      : undefined;
-
   const router = createRouter({
     routeTree,
     context: { ...rqContext },
     defaultPreload: 'intent',
     Wrap: (props: { children: React.ReactNode }) => {
+      // Only render Auth0Provider on client side
+      if (typeof window === 'undefined') {
+        return (
+          <TanstackQuery.Provider {...rqContext}>
+            {props.children}
+          </TanstackQuery.Provider>
+        );
+      }
+
       return (
         <Auth0Provider
           domain={import.meta.env.VITE_AUTH0_DOMAIN}
           clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
           authorizationParams={{
-            redirect_uri: redirect_uri,
+            redirect_uri: window.location.origin + '/discover',
             audience: import.meta.env.VITE_AUTH0_AUDIENCE,
             scope: 'openid profile email',
           }}
+          cacheLocation="localstorage"
+          useRefreshTokens={true}
         >
           <TanstackQuery.Provider {...rqContext}>
             {props.children}

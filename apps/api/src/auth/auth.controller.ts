@@ -34,11 +34,10 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(CompleteOnboardingIn))
   async completeOnboarding(
     @CurrentUser() jwtUser: JwtUser,
-    @Body() body: { username: string; displayName: string; bio?: string },
+    @Body() body: { displayName: string; bio?: string },
   ) {
     const user = await this.authService.completeOnboarding(
       jwtUser.sub,
-      body.username,
       body.displayName,
       body.bio,
     );

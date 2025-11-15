@@ -7,7 +7,7 @@ async function bootstrap() {
   // Enable CORS for frontend
   app.enableCors({
     origin: [
-      'http://localhost:5173',
+      'http://localhost:3001',
       'https://soundmate.soundmatedevs.workers.dev',
       process.env.FRONTEND_URL,
     ].filter(Boolean),
