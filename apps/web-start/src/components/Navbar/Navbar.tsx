@@ -1,25 +1,32 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
+import { useAuth0 } from '@auth0/auth0-react';
 import { Avatar } from '../Avatar/Avatar';
 import { AuroraRay } from '../Animations';
 
-const useMockAuth = () => {
-  return {
-    isAuthenticated: false,
-    isLoading: false,
-    user: undefined as { name?: string; picture?: string } | undefined,
-    loginWithSpotify: () => {
-      console.log('Login with Spotify');
-    },
-    logout: () => {
-      console.log('Logout');
-    },
-  };
-};
-
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { isAuthenticated, isLoading, user, loginWithSpotify, logout } = useMockAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    user,
+    loginWithRedirect,
+    logout: auth0Logout
+  } = useAuth0();
+
+  const handleLogin = () => {
+    loginWithRedirect({
+      appState: { returnTo: '/home' }
+    });
+  };
+
+  const handleLogout = () => {
+    auth0Logout({
+      logoutParams: {
+        returnTo: window.location.origin
+      }
+    });
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-6 pointer-events-none">
@@ -98,7 +105,7 @@ export function Navbar() {
                 <Avatar size="small" imageSrc={user?.picture} name={user?.name} />
               </Link>
               <button
-                onClick={() => logout()}
+                onClick={handleLogout}
                 className="px-4 py-2 text-sm font-medium text-white border border-white/30 rounded-full hover:bg-white/10 transition-colors"
               >
                 Log Out
@@ -106,11 +113,11 @@ export function Navbar() {
             </>
           ) : (
             <button
-              onClick={() => loginWithSpotify()}
+              onClick={handleLogin}
               className="px-5 py-2 text-sm font-medium bg-white text-black rounded-full hover:bg-gray-100 transition-colors"
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Login with Spotify'}
+              {isLoading ? 'Loading...' : 'Login with Auth0'}
             </button>
           )}
         </div>
@@ -152,7 +159,7 @@ export function Navbar() {
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  logout();
+                  handleLogout();
                 }}
                 className="text-left text-gray-300 hover:text-white transition-all duration-200"
               >
