@@ -6,11 +6,13 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { PrismaService } from '../prisma.service';
+import { SpotifyModule } from '../spotify/spotify.module';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}),
+    SpotifyModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtAuthGuard, PrismaService],

@@ -23,6 +23,18 @@ export class UsersController {
     return this.usersService.getCurrentUser(user.id);
   }
 
+  @Get('me/profile')
+  @UseGuards(JwtAuthGuard)
+  async getMeProfile(@CurrentUser() jwtUser: JwtUser, @Query('timeRange') timeRange?: string) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    if (!user) {
+      // Auto-create if doesn't exist
+      const newUser = await this.usersService.createUserFromAuth0(jwtUser.sub);
+      return this.usersService.findOneWithTopArtists(newUser.id, timeRange as any);
+    }
+    return this.usersService.findOneWithTopArtists(user.id, timeRange as any);
+  }
+
   @Patch('me')
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ZodValidationPipe(UserUpdateIn))
