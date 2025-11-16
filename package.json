@@ -30,6 +30,9 @@
   "engines": {
     "node": "20.x"
   },
+  "overrides": {
+    "esbuild": "^0.23.1"
+  },
   "dependencies": {
     "@prisma/client": "latest"
   },
