@@ -9,17 +9,18 @@ export class AuthService {
   async login(jwtUser: JwtUser, spotifyAccessToken: string, spotifyRefreshToken: string) {
     const spotifyProfile = await this.fetchSpotifyProfile(spotifyAccessToken);
 
+    // Find user by Auth0 ID instead of email
     let user = await this.prisma.user.findUnique({
-      where: { email: jwtUser.email },
+      where: { auth0Id: jwtUser.sub },
     });
 
     if (!user) {
+      // Create new user with just auth0Id and Spotify info
+      // Email/username will be collected during onboarding
       user = await this.prisma.user.create({
         data: {
-          email: jwtUser.email,
+          auth0Id: jwtUser.sub,
           spotifyId: spotifyProfile.id,
-          username: `user_${spotifyProfile.id.slice(0, 8)}`,
-          displayName: spotifyProfile.display_name,
           profilePhotoUrl: spotifyProfile.images?.[0]?.url ?? null,
           spotifyProfileUrl: spotifyProfile.external_urls?.spotify ?? null,
           lastLogin: new Date(),
@@ -39,6 +40,7 @@ export class AuthService {
       };
     }
 
+    // Update existing user's last login and Spotify tokens
     user = await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -68,10 +70,12 @@ export class AuthService {
     };
   }
 
-  async completeOnboarding(userId: string, displayName: string, bio?: string) {
+  async completeOnboarding(userId: string, email: string, username: string, displayName: string, bio?: string) {
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
+        email,
+        username,
         displayName,
         bio,
         isOnboarded: true,

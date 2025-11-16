@@ -131,9 +131,9 @@ export class UsersService {
     });
   }
 
-  async findByEmail(email: string) {
+  async findByAuth0Id(auth0Id: string) {
     return this.prisma.user.findUnique({
-      where: { email },
+      where: { auth0Id },
     });
   }
 }

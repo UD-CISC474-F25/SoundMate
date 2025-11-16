@@ -13,6 +13,7 @@ async function main() {
   const users = await Promise.all([
     prisma.user.create({
       data: {
+        auth0Id: "auth0|pikachu_001",
         email: "pikachu@udel.edu",
         username: "pikachu",
         displayName: "Pikachu",
@@ -21,10 +22,12 @@ async function main() {
         profilePhotoUrl: "https://i.pravatar.cc/150?img=1",
         spotifyProfileUrl: "https://open.spotify.com/user/pikachu",
         showSpotifyProfile: true,
+        isOnboarded: true,
       },
     }),
     prisma.user.create({
       data: {
+        auth0Id: "auth0|charizard_006",
         email: "charizard@udel.edu",
         username: "charizard",
         displayName: "Charizard",
@@ -33,10 +36,12 @@ async function main() {
         profilePhotoUrl: "https://i.pravatar.cc/150?img=12",
         spotifyProfileUrl: "https://open.spotify.com/user/charizard",
         showSpotifyProfile: true,
+        isOnboarded: true,
       },
     }),
     prisma.user.create({
       data: {
+        auth0Id: "auth0|jigglypuff_039",
         email: "jigglypuff@udel.edu",
         username: "jigglypuff",
         displayName: "Jigglypuff",
@@ -45,10 +50,12 @@ async function main() {
         profilePhotoUrl: "https://i.pravatar.cc/150?img=5",
         spotifyProfileUrl: "https://open.spotify.com/user/jigglypuff",
         showSpotifyProfile: true,
+        isOnboarded: true,
       },
     }),
     prisma.user.create({
       data: {
+        auth0Id: "auth0|mewtwo_150",
         email: "mewtwo@udel.edu",
         username: "mewtwo",
         displayName: "Mewtwo",
@@ -57,10 +64,12 @@ async function main() {
         profilePhotoUrl: "https://i.pravatar.cc/150?img=8",
         spotifyProfileUrl: "https://open.spotify.com/user/mewtwo",
         showSpotifyProfile: true,
+        isOnboarded: true,
       },
     }),
     prisma.user.create({
       data: {
+        auth0Id: "auth0|eevee_133",
         email: "eevee@udel.edu",
         username: "eevee",
         displayName: "Eevee",
@@ -69,10 +78,12 @@ async function main() {
         profilePhotoUrl: "https://i.pravatar.cc/150?img=9",
         spotifyProfileUrl: "https://open.spotify.com/user/eevee",
         showSpotifyProfile: true,
+        isOnboarded: true,
       },
     }),
     prisma.user.create({
       data: {
+        auth0Id: "auth0|snorlax_143",
         email: "snorlax@udel.edu",
         username: "snorlax",
         displayName: "Snorlax",
@@ -81,10 +92,12 @@ async function main() {
         profilePhotoUrl: "https://i.pravatar.cc/150?img=13",
         spotifyProfileUrl: "https://open.spotify.com/user/snorlax",
         showSpotifyProfile: true,
+        isOnboarded: true,
       },
     }),
     prisma.user.create({
       data: {
+        auth0Id: "auth0|gengar_094",
         email: "gengar@udel.edu",
         username: "gengar",
         displayName: "Gengar",
@@ -93,10 +106,12 @@ async function main() {
         profilePhotoUrl: "https://i.pravatar.cc/150?img=14",
         spotifyProfileUrl: "https://open.spotify.com/user/gengar",
         showSpotifyProfile: true,
+        isOnboarded: true,
       },
     }),
     prisma.user.create({
       data: {
+        auth0Id: "auth0|vaporeon_134",
         email: "vaporeon@udel.edu",
         username: "vaporeon",
         displayName: "Vaporeon",
@@ -105,6 +120,7 @@ async function main() {
         profilePhotoUrl: "https://i.pravatar.cc/150?img=15",
         spotifyProfileUrl: "https://open.spotify.com/user/vaporeon",
         showSpotifyProfile: true,
+        isOnboarded: true,
       },
     }),
   ]);

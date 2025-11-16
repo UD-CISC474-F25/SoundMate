@@ -13,7 +13,7 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() jwtUser: JwtUser) {
-    const user = await this.usersService.findByEmail(jwtUser.email);
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.usersService.getCurrentUser(user.id);
   }
 
@@ -24,7 +24,7 @@ export class UsersController {
     @CurrentUser() jwtUser: JwtUser,
     @Body() body: { displayName?: string; bio?: string | null; showSpotifyProfile?: boolean },
   ) {
-    const user = await this.usersService.findByEmail(jwtUser.email);
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.usersService.updateCurrentUser(user.id, body);
   }
 

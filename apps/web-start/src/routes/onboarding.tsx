@@ -11,6 +11,8 @@ function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useAuth0();
   const [formData, setFormData] = useState({
+    email: user?.email || '',
+    username: '',
     displayName: user?.name || '',
     bio: '',
   });
@@ -39,6 +41,38 @@ function OnboardingPage() {
         <p className="text-gray-300 mb-6">Let's set up your profile</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
+              Email *
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="your.email@example.com"
+            />
+          </div>
+
+          {/* Username */}
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-200 mb-2">
+              Username *
+            </label>
+            <input
+              id="username"
+              type="text"
+              required
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Choose a unique username"
+            />
+          </div>
+
           {/* Display Name */}
           <div>
             <label htmlFor="displayName" className="block text-sm font-medium text-gray-200 mb-2">
