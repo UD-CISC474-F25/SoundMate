@@ -9,32 +9,24 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-black">
       <section className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <FadeIn>
-                <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white">
-                  <TypewriterText text="Find Your Music Community" />
-                </h1>
-              </FadeIn>
-
-              <FadeIn delay={1}>
-                <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-                  <TypewriterText
-                    text="SoundMate connects college students through their shared love of music. Discover friends who vibe with your playlist, find concert buddies, and create unforgettable music experiences together."
-                    delay={800}
-                  />
-                </p>
-              </FadeIn>
-
-              <FadeIn delay={2}>
-                <button className="relative px-8 py-4 text-lg font-semibold bg-white text-black rounded-full transition-all transform hover:scale-105 shadow-lg">
-                  <TypewriterText text="Get Started with Spotify" delay={1600} />
-                </button>
-              </FadeIn>
-            </div>
+        <div className="max-w-7xl mx-auto flex flex-col items-center">
+          <div className="w-full md:w-[80%] space-y-8">
+            <FadeIn>
+              <h1 className="text-5xl md:text-6xl font-bold text-white text-center">
+                <TypewriterText text="Find Your Music Community" />
+              </h1>
+            </FadeIn>
 
             <FadeIn delay={1}>
+              <p className="text-xl text-gray-300 leading-relaxed text-center">
+                <TypewriterText
+                  text="SoundMate connects college students through their shared love of music. Discover friends who vibe with your playlist, find concert buddies, and create unforgettable music experiences together."
+                  delay={800}
+                />
+              </p>
+            </FadeIn>
+
+            <FadeIn delay={2}>
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img
                   src="/home_page_placeholder.jpeg"

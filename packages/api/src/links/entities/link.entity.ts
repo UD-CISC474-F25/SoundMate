@@ -1,14 +1,6 @@
-export class Link {
+export type Link = {
   id: number;
-  url: string;
   title: string;
+  url: string;
   description: string;
-
-  // Don't really want this, delete this whole file. Just left it in as an example.
-  constructor() {
-    this.id = 0;
-    this.url = '';
-    this.title = '';
-    this.description = '';
-  }
-}
+};
