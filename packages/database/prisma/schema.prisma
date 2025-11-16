@@ -72,15 +72,15 @@ model UserTopArtist {
   userId    String        @map("user_id")
   artistId  String        @map("artist_id")
   rank      Int
-  timeRange TimeRange     @default(LONG_TERM) @map("time_range")
+  timeRange TimeRange     @default(SHORT_TERM) @map("time_range")
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")
 
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   artist    Artist        @relation(fields: [artistId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, artistId])
-  @@index([userId, rank])
+  @@unique([userId, artistId, timeRange])
+  @@index([userId, timeRange, rank])
   @@map("user_top_artists")
 }
 
