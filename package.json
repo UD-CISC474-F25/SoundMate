@@ -28,7 +28,7 @@
     "seed": "tsx packages/database/src/seed.ts"
   },
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   },
   "dependencies": {
     "@prisma/client": "latest"
