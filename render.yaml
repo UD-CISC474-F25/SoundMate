@@ -4,9 +4,9 @@ services:
     env: node
     plan: free
     rootDir: .
-    buildCommand: npm install  && npm run build
-    startCommand: npm run start -w ./apps/api --port 10000 --host 0.0.0.0
-    preDeployCommand: npx prisma migrate deploy && npx prisma db seed
+    buildCommand: npm install && npx turbo build --filter=api
+    startCommand: npm run start:prod --workspace=apps/api
+    preDeployCommand: npx prisma migrate deploy --schema=./packages/database/prisma/schema.prisma
     healthCheckPath: /
     autoDeploy: true
     envVars:
