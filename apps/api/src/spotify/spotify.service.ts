@@ -33,14 +33,14 @@ export class SpotifyService {
 
       await this.prisma.userTopArtist.upsert({
         where: {
-          userId_artistId: {
+          userId_artistId_timeRange: {
             userId,
             artistId: artist.id,
+            timeRange,
           },
         },
         update: {
           rank: index + 1,
-          timeRange,
         },
         create: {
           userId,

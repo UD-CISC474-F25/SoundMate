@@ -31,6 +31,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: any): JwtUser {
+    // Log the payload to see what's actually in the token
+    console.log('JWT Payload:', JSON.stringify(payload, null, 2));
+
     return {
       sub: payload.sub,
       email: payload.email || payload['https://myapp.com/email'] || payload.nickname,

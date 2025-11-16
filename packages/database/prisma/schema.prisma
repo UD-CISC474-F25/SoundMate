@@ -11,14 +11,16 @@ generator client {
 
 model User {
   id                   String    @id @default(cuid())
-  email                String    @unique
+  auth0Id              String    @unique @map("auth0_id")
+  email                String?   @unique
   spotifyId            String?   @unique @map("spotify_id")
-  username             String    @unique
+  username             String?   @unique
   displayName          String?   @map("display_name")
   profilePhotoUrl      String?   @map("profile_photo_url")
   bio                  String?
   spotifyProfileUrl    String?   @map("spotify_profile_url")
   showSpotifyProfile   Boolean   @default(true) @map("show_spotify_profile")
+  isOnboarded          Boolean   @default(false) @map("is_onboarded")
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
   lastLogin            DateTime? @map("last_login")
@@ -70,15 +72,15 @@ model UserTopArtist {
   userId    String        @map("user_id")
   artistId  String        @map("artist_id")
   rank      Int
-  timeRange TimeRange     @default(LONG_TERM) @map("time_range")
+  timeRange TimeRange     @default(SHORT_TERM) @map("time_range")
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")
 
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   artist    Artist        @relation(fields: [artistId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, artistId])
-  @@index([userId, rank])
+  @@unique([userId, artistId, timeRange])
+  @@index([userId, timeRange, rank])
   @@map("user_top_artists")
 }
 

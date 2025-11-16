@@ -13,8 +13,26 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() jwtUser: JwtUser) {
-    const user = await this.usersService.findByEmail(jwtUser.email);
+    let user = await this.usersService.findByAuth0Id(jwtUser.sub);
+
+    // Auto-create user on first access if they don't exist
+    if (!user) {
+      user = await this.usersService.createUserFromAuth0(jwtUser.sub);
+    }
+
     return this.usersService.getCurrentUser(user.id);
+  }
+
+  @Get('me/profile')
+  @UseGuards(JwtAuthGuard)
+  async getMeProfile(@CurrentUser() jwtUser: JwtUser, @Query('timeRange') timeRange?: string) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    if (!user) {
+      // Auto-create if doesn't exist
+      const newUser = await this.usersService.createUserFromAuth0(jwtUser.sub);
+      return this.usersService.findOneWithTopArtists(newUser.id, timeRange as any);
+    }
+    return this.usersService.findOneWithTopArtists(user.id, timeRange as any);
   }
 
   @Patch('me')
@@ -24,7 +42,7 @@ export class UsersController {
     @CurrentUser() jwtUser: JwtUser,
     @Body() body: { displayName?: string; bio?: string | null; showSpotifyProfile?: boolean },
   ) {
-    const user = await this.usersService.findByEmail(jwtUser.email);
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.usersService.updateCurrentUser(user.id, body);
   }
 

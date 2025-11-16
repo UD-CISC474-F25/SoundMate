@@ -21,6 +21,7 @@
     "build": "tsup src/* --format cjs,esm && npm run types",
     "format": "prisma format",
     "generate": "prisma generate",
+    "postgenerate": "find generated/client -type f \\( -name '* 2.*' -o -name '* 3.*' -o -name '* 4.*' \\) -delete 2>/dev/null || true",
     "lint": "eslint . --max-warnings 0",
     "prebuild": "npm run generate",
     "predev": "npm run generate",
