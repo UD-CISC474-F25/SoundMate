@@ -9,6 +9,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 
 import { Navbar } from '../components/Navbar/Navbar';
+import { Footer } from '../components/Footer/Footer';
 import TanStackQueryDevtools from '../integrations/devtools';
 import appCss from '../styles.css?url';
 
@@ -46,10 +47,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootComponent() {
   return (
-    <>
+    <div className="flex flex-col min-h-screen bg-black">
       <Navbar />
-      <Outlet />
-    </>
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
   );
 }
 
@@ -59,7 +63,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="bg-black">
         {children}
         <TanStackDevtools
           config={{

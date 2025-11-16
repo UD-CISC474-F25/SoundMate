@@ -77,6 +77,7 @@ export class UsersService {
       name: ta.artist.name,
       genres: ta.artist.genres,
       imageUrl: ta.artist.imageUrl,
+      spotifyUri: ta.artist.spotifyUri,
       rank: ta.rank,
       timeRange: ta.timeRange,
     }));
@@ -144,5 +145,22 @@ export class UsersService {
         isOnboarded: false,
       },
     });
+  }
+
+  async deleteUser(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Prisma will handle cascade deletes for related data (topArtists, events, etc.)
+    await this.prisma.user.delete({
+      where: { id: userId },
+    });
+
+    return { success: true, message: 'User account deleted successfully' };
   }
 }

@@ -57,7 +57,7 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className={`bg-gray-900 border border-gray-800 rounded-lg ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-y-auto`}
+        className={`bg-black border border-white/20 rounded-lg ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-y-auto`}
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -74,7 +74,7 @@ export function Modal({
               {showCloseButton && (
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-white transition-colors ml-auto"
+                  className="text-gray-400 hover:text-white transition-colors ml-auto cursor-pointer"
                   aria-label="Close modal"
                 >
                   <X size={24} />

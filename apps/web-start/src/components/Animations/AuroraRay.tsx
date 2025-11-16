@@ -9,7 +9,7 @@ interface AuroraRayProps {
 export function AuroraRay({ children, className = '', rounded = 'rounded-xl' }: AuroraRayProps) {
   return (
     <div className={`group relative ${className}`}>
-      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 overflow-hidden ${rounded} pointer-events-none`}>
+      <div className={`absolute inset-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 overflow-hidden ${rounded} pointer-events-none`}>
         <div
           className="absolute inset-0 animate-aurora blur-2xl"
           style={{

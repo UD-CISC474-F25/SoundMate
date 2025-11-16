@@ -27,6 +27,8 @@ function OnboardingPage() {
     displayName: user?.name || '',
     bio: '',
   });
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   const completeOnboarding = useApiMutation({
     path: '/auth/onboarding',
@@ -36,13 +38,25 @@ function OnboardingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Prevent multiple submissions
+    if (completeOnboarding.isPending || isRedirecting) {
+      return;
+    }
+
     try {
+      setLoadingMessage('Saving your profile...');
       await completeOnboarding.mutateAsync(formData);
 
+      setLoadingMessage('Connecting to Spotify...');
+      setIsRedirecting(true);
       const { authUrl } = await request<{ authUrl: string }>('/auth/spotify/auth-url');
+
+      setLoadingMessage('Creating profile...');
       window.location.href = authUrl;
     } catch (error) {
       console.error('Onboarding failed:', error);
+      setIsRedirecting(false);
+      setLoadingMessage('');
     }
   };
 
@@ -106,10 +120,13 @@ function OnboardingPage() {
 
           <button
             type="submit"
-            disabled={completeOnboarding.isPending}
-            className={`w-full py-2.5 px-6 bg-white text-black font-semibold rounded-full hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black transition-all shadow-lg ${SPACING.MARGIN_BOTTOM_MD} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+            disabled={completeOnboarding.isPending || isRedirecting}
+            className={`w-full py-2.5 px-6 bg-white text-black font-semibold rounded-full hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black transition-all shadow-lg ${SPACING.MARGIN_BOTTOM_MD} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2`}
           >
-            {completeOnboarding.isPending ? 'Saving...' : 'Complete Setup'}
+            {(completeOnboarding.isPending || isRedirecting) && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
+            )}
+            {loadingMessage || 'Complete Setup'}
           </button>
 
           {completeOnboarding.isError && (

@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, Query, UseGuards, UsePipes } from '@nestjs/common';
+import { Controller, Delete, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -37,13 +37,22 @@ export class UsersController {
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
-  @UsePipes(new ZodValidationPipe(UserUpdateIn))
   async updateMe(
     @CurrentUser() jwtUser: JwtUser,
-    @Body() body: { displayName?: string; bio?: string | null; showSpotifyProfile?: boolean },
+    @Body(new ZodValidationPipe(UserUpdateIn)) body: { displayName?: string; bio?: string | null; showSpotifyProfile?: boolean },
   ) {
     const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.usersService.updateCurrentUser(user.id, body);
+  }
+
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  async deleteMe(@CurrentUser() jwtUser: JwtUser) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return this.usersService.deleteUser(user.id);
   }
 
   @Get()
