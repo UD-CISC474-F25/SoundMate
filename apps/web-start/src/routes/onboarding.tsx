@@ -1,72 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useState } from 'react';
-import { useApiMutation, useApiClient } from '../integrations/api';
+import { FormInput } from '../components/FormInput/FormInput';
+import { FormTextarea } from '../components/FormTextarea/FormTextarea';
+import { useApiClient, useApiMutation } from '../integrations/api';
+import { LAYOUT, SPACING } from '../constants/layout';
 
 export const Route = createFileRoute('/onboarding')({
   component: OnboardingPage,
 });
-
-type FormInputProps = {
-  id: string;
-  label: string;
-  type: string;
-  required?: boolean;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  maxLength?: number;
-};
-
-function FormInput({ id, label, type, required, value, onChange, placeholder, maxLength }: FormInputProps) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-200 mb-2">
-        {label} {required && '*'}
-      </label>
-      <input
-        id={id}
-        type={type}
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all"
-        placeholder={placeholder}
-        maxLength={maxLength}
-      />
-    </div>
-  );
-}
-
-type FormTextareaProps = {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  maxLength: number;
-  rows: number;
-};
-
-function FormTextarea({ id, label, value, onChange, placeholder, maxLength, rows }: FormTextareaProps) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-200 mb-2">
-        {label}
-      </label>
-      <textarea
-        id={id}
-        rows={rows}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent resize-none transition-all"
-        placeholder={placeholder}
-        maxLength={maxLength}
-      />
-      <p className="text-xs text-gray-400 mt-1">{value.length}/{maxLength} characters</p>
-    </div>
-  );
-}
 
 function OnboardingPage() {
   const { user } = useAuth0();
@@ -97,12 +39,12 @@ function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-black">
-      <div className="max-w-md w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-2xl">
-        <h1 className="text-3xl font-bold text-white mb-2">Welcome to SoundMate!</h1>
-        <p className="text-gray-300 mb-6">Let's set up your profile</p>
+    <div className={`min-h-screen bg-black ${SPACING.PAGE_TOP_PADDING_XLARGE} ${SPACING.PAGE_BOTTOM_PADDING} ${SPACING.PAGE_HORIZONTAL_PADDING}`}>
+      <div className={`${SPACING.CONTAINER_MAX_WIDTH_SM} mx-auto bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 shadow-2xl`}>
+        <h1 className={`text-2xl font-bold text-white ${SPACING.MARGIN_BOTTOM_SM}`}>Welcome to SoundMate!</h1>
+        <p className={`text-gray-300 text-sm ${SPACING.MARGIN_BOTTOM_MD}`}>Let's set up your profile</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className={SPACING.SPACE_SM}>
           <FormInput
             id="email"
             label="Email"
@@ -140,13 +82,13 @@ function OnboardingPage() {
             onChange={(value) => setFormData({ ...formData, bio: value })}
             placeholder="Tell us about yourself and your music taste..."
             maxLength={500}
-            rows={4}
+            rows={1}
           />
 
           <button
             type="submit"
             disabled={completeOnboarding.isPending}
-            className="w-full py-3 px-6 bg-white text-black font-semibold rounded-full hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className={`w-full py-2.5 px-6 bg-white text-black font-semibold rounded-full hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black transition-all shadow-lg ${SPACING.MARGIN_BOTTOM_MD} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {completeOnboarding.isPending ? 'Saving...' : 'Complete Setup'}
           </button>

@@ -1,21 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Avatar } from '../components/Avatar/Avatar';
-import { useApiQuery, useApiMutation, useApiClient } from '../integrations/api';
+import { LoadingSpinner } from '../components/LoadingSpinner/LoadingSpinner';
+import { FilterTabs } from '../components/FilterTabs/FilterTabs';
+import { ProfileSuccessMessage } from '../components/ProfileSuccessMessage/ProfileSuccessMessage';
+import { ProfileErrorState } from '../components/ProfileErrorState/ProfileErrorState';
+import { ArtistCard } from '../components/ArtistCard/ArtistCard';
+import { EventList } from '../components/EventList/EventList';
+import { useApiClient, useApiQuery } from '../integrations/api';
+import { APP_CONFIG } from '../constants/app';
 
 export const Route = createFileRoute('/profile')({
   component: ProfilePage,
 });
-
-type TopArtist = {
-  id: string;
-  spotifyArtistId: string;
-  name: string;
-  genres: string[];
-  imageUrl?: string | null;
-  rank: number;
-  timeRange: string;
-};
 
 type UserProfile = {
   id: string;
@@ -28,109 +25,18 @@ type UserProfile = {
   showSpotifyProfile?: boolean;
   isOnboarded?: boolean;
   createdAt?: string;
-  topArtists: TopArtist[];
+  topArtists: Array<{
+    id: string;
+    spotifyArtistId: string;
+    name: string;
+    genres: Array<string>;
+    imageUrl?: string | null;
+    rank: number;
+    timeRange: string;
+  }>;
 };
-
-type EventItem = {
-  id: number;
-  title: string;
-  date: string;
-  location: string;
-};
-
-type EventListProps = {
-  events: Array<EventItem>;
-  editable?: boolean;
-};
-
-function SuccessMessage() {
-  return (
-    <div className="bg-green-900/50 border border-green-700 rounded-lg p-4 mb-6 flex items-center gap-3">
-      <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-      </svg>
-      <div>
-        <p className="text-green-100 font-semibold">Spotify Connected Successfully!</p>
-        <p className="text-green-200 text-sm">Your top artists have been synced.</p>
-      </div>
-    </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className="min-h-screen bg-black pt-28 px-6 text-gray-100 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-        <p className="text-gray-400">Loading profile...</p>
-      </div>
-    </div>
-  );
-}
-
-function ErrorState() {
-  return (
-    <div className="min-h-screen bg-black pt-28 px-6 text-gray-100 flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-red-400 mb-4">Failed to load profile</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-white text-black rounded-full hover:scale-105 transition-all shadow-lg"
-        >
-          Retry
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ArtistCard({ artist }: { artist: TopArtist }) {
-  return (
-    <div className="text-center">
-      <img
-        src={artist.imageUrl || '/placeholder-artist.jpg'}
-        alt={artist.name}
-        className="w-24 h-24 rounded-full mx-auto mb-2 object-cover bg-gray-800"
-      />
-      <p className="font-medium text-white">{artist.name}</p>
-      <p className="text-xs text-gray-400">
-        {artist.genres.slice(0, 2).join(', ')}
-      </p>
-    </div>
-  );
-}
-
-function EventList({ events, editable = false }: EventListProps) {
-  return (
-    <ul className="space-y-4">
-      {events.map((event) => (
-        <li key={event.id} className="bg-white/5 border border-white/20 p-4 rounded-lg">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-semibold text-white">{event.title}</h3>
-              <p className="text-gray-400">{event.date}</p>
-              <p className="text-gray-500 text-sm">{event.location}</p>
-            </div>
-            {editable && (
-              <div className="flex gap-8">
-                <button className="text-white hover:text-gray-300">Edit</button>
-                <button className="text-red-400 hover:text-red-300">Delete</button>
-              </div>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 type TimeRange = 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
-
-const TIME_RANGE_INFO: Record<TimeRange, { label: string; description: string }> = {
-  SHORT_TERM: { label: 'Last 4 Weeks', description: 'Your most recent listening habits' },
-  MEDIUM_TERM: { label: 'Last 6 Months', description: 'Your listening trends over half a year' },
-  LONG_TERM: { label: 'All Time', description: 'Your favorite artists over several years' },
-};
 
 function ProfilePage() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -171,13 +77,20 @@ function ProfilePage() {
     { id: 3, title: 'Jazz at Rodney Square', date: 'Nov 28, 2025', location: 'Wilmington, DE' },
   ];
 
-  if (isLoading) return <LoadingState />;
-  if (isError || !user) return <ErrorState />;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black pt-28 px-6">
+        <LoadingSpinner fullScreen message="Loading profile..." />
+      </div>
+    );
+  }
+
+  if (isError || !user) return <ProfileErrorState />;
 
   return (
     <div className="min-h-screen bg-black pt-28 px-6 text-gray-100">
       <div className="max-w-4xl mx-auto">
-        {showSuccessMessage && <SuccessMessage />}
+        {showSuccessMessage && <ProfileSuccessMessage />}
 
         <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-8 mb-6">
           <div className="flex items-start gap-6 mb-6">
@@ -209,7 +122,7 @@ function ProfilePage() {
                 </a>
               )}
             </div>
-            <button className="px-4 py-2 border-2 border-white/40 text-white rounded-full hover:bg-white/10 hover:border-white/60 transition-all font-medium">
+            <button className="px-4 py-2 border-2 border-white/40 text-white rounded-full hover:bg-white/10 hover:border-white/60 transition-all font-medium cursor-pointer">
               Edit Profile
             </button>
           </div>
@@ -219,29 +132,24 @@ function ProfilePage() {
           <h2 className="text-2xl font-bold text-white mb-4">Top Artists</h2>
 
           <div className="mb-6">
-            <div className="flex gap-2 mb-3">
-              {(Object.keys(TIME_RANGE_INFO) as TimeRange[]).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setSelectedTimeRange(range)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    selectedTimeRange === range
-                      ? 'bg-white text-black'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
-                >
-                  {TIME_RANGE_INFO[range].label}
-                </button>
-              ))}
-            </div>
+            <FilterTabs
+              tabs={[
+                { value: 'SHORT_TERM', label: APP_CONFIG.TIME_RANGES.SHORT_TERM.label },
+                { value: 'MEDIUM_TERM', label: APP_CONFIG.TIME_RANGES.MEDIUM_TERM.label },
+                { value: 'LONG_TERM', label: APP_CONFIG.TIME_RANGES.LONG_TERM.label },
+              ]}
+              activeTab={selectedTimeRange}
+              onChange={(value) => setSelectedTimeRange(value as TimeRange)}
+              className="mb-3"
+            />
             <p className="text-sm text-gray-400">
-              {TIME_RANGE_INFO[selectedTimeRange].description}
+              {APP_CONFIG.TIME_RANGES[selectedTimeRange].description}
             </p>
           </div>
 
-          {user.topArtists && user.topArtists.length > 0 ? (
+          {user.topArtists.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {user.topArtists.slice(0, 6).map((artist) => (
+              {user.topArtists.slice(0, APP_CONFIG.TOP_ARTISTS.DISPLAY_COUNT).map((artist) => (
                 <ArtistCard key={artist.id} artist={artist} />
               ))}
             </div>
@@ -252,7 +160,7 @@ function ProfilePage() {
               </p>
               <button
                 onClick={handleConnectSpotify}
-                className="inline-block px-6 py-3 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700 transition-all shadow-lg"
+                className="inline-block px-6 py-3 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700 transition-all shadow-lg cursor-pointer"
               >
                 Connect Spotify
               </button>
@@ -264,7 +172,7 @@ function ProfilePage() {
           <h2 className="text-2xl font-bold mb-4 text-white">Your Events</h2>
           <div className="flex gap-4 mb-4">
             <button
-              className={`px-4 py-2 rounded-full transition-all ${
+              className={`px-4 py-2 rounded-full transition-all cursor-pointer ${
                 activeTab === 'created'
                   ? 'bg-white text-black'
                   : 'bg-white/10 text-white hover:bg-white/20'
@@ -274,7 +182,7 @@ function ProfilePage() {
               Created
             </button>
             <button
-              className={`px-4 py-2 rounded-full transition-all ${
+              className={`px-4 py-2 rounded-full transition-all cursor-pointer ${
                 activeTab === 'attending'
                   ? 'bg-white text-black'
                   : 'bg-white/10 text-white hover:bg-white/20'
