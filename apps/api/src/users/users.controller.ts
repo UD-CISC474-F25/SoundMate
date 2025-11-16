@@ -13,7 +13,13 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() jwtUser: JwtUser) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    let user = await this.usersService.findByAuth0Id(jwtUser.sub);
+
+    // Auto-create user on first access if they don't exist
+    if (!user) {
+      user = await this.usersService.createUserFromAuth0(jwtUser.sub);
+    }
+
     return this.usersService.getCurrentUser(user.id);
   }
 

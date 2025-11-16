@@ -136,4 +136,13 @@ export class UsersService {
       where: { auth0Id },
     });
   }
+
+  async createUserFromAuth0(auth0Id: string) {
+    return this.prisma.user.create({
+      data: {
+        auth0Id,
+        isOnboarded: false,
+      },
+    });
+  }
 }

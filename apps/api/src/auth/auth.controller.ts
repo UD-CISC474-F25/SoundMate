@@ -31,13 +31,23 @@ export class AuthController {
 
   @Post('onboarding')
   @UseGuards(JwtAuthGuard)
-  @UsePipes(new ZodValidationPipe(CompleteOnboardingIn))
   async completeOnboarding(
     @CurrentUser() jwtUser: JwtUser,
-    @Body() body: { email: string; username: string; displayName: string; bio?: string },
+    @Body(new ZodValidationPipe(CompleteOnboardingIn)) body: { email: string; username: string; displayName: string; bio?: string | null },
   ) {
+    console.log('Onboarding request body:', JSON.stringify(body, null, 2));
+    console.log('JWT User:', jwtUser);
+
+    // First find the user by auth0Id to get their userId
+    const existingUser = await this.authService.findByAuth0Id(jwtUser.sub);
+    console.log('Existing user:', existingUser);
+
+    if (!existingUser) {
+      throw new Error('User not found');
+    }
+
     const user = await this.authService.completeOnboarding(
-      jwtUser.sub,
+      existingUser.id,
       body.email,
       body.username,
       body.displayName,

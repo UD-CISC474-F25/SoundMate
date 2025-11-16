@@ -6,6 +6,12 @@ import { JwtUser } from './jwt.strategy';
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
+  async findByAuth0Id(auth0Id: string) {
+    return this.prisma.user.findUnique({
+      where: { auth0Id },
+    });
+  }
+
   async login(jwtUser: JwtUser, spotifyAccessToken: string, spotifyRefreshToken: string) {
     const spotifyProfile = await this.fetchSpotifyProfile(spotifyAccessToken);
 
