@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormInput } from '../components/FormInput/FormInput';
 import { FormTextarea } from '../components/FormTextarea/FormTextarea';
 import { useApiClient, useApiMutation } from '../integrations/api';
@@ -11,8 +11,16 @@ export const Route = createFileRoute('/onboarding')({
 });
 
 function OnboardingPage() {
-  const { user } = useAuth0();
+  const { user, isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
   const { request } = useApiClient();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      void loginWithRedirect({
+        appState: { returnTo: window.location.pathname },
+      });
+    }
+  }, [authLoading, isAuthenticated, loginWithRedirect]);
   const [formData, setFormData] = useState({
     email: user?.email || '',
     username: '',
@@ -37,6 +45,17 @@ function OnboardingPage() {
       console.error('Onboarding failed:', error);
     }
   };
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-black ${SPACING.PAGE_TOP_PADDING_XLARGE} ${SPACING.PAGE_BOTTOM_PADDING} ${SPACING.PAGE_HORIZONTAL_PADDING}`}>

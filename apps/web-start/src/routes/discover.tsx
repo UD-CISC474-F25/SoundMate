@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { Check, Clock, Music, Search, UserCheck, UserPlus, X } from 'lucide-react';
 import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
 
@@ -32,9 +33,18 @@ interface UserProfile {
 }
 
 function FriendsDiscoveryPage() {
+  const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
   const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
 
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      void loginWithRedirect({
+        appState: { returnTo: window.location.pathname },
+      });
+    }
+  }, [authLoading, isAuthenticated, loginWithRedirect]);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [users, setUsers] = useState<Array<UserProfile>>([
     {
@@ -215,7 +225,7 @@ function FriendsDiscoveryPage() {
     );
   };
 
-  if (isCheckingOnboarding || needsOnboarding) {
+  if (authLoading || !isAuthenticated || isCheckingOnboarding || needsOnboarding) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">

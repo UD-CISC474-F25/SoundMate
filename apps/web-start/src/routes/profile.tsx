@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { Avatar } from '../components/Avatar/Avatar';
 import { LoadingSpinner } from '../components/LoadingSpinner/LoadingSpinner';
 import { FilterTabs } from '../components/FilterTabs/FilterTabs';
@@ -39,10 +40,19 @@ type UserProfile = {
 type TimeRange = 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
 
 function ProfilePage() {
+  const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('created');
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('SHORT_TERM');
   const { request } = useApiClient();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      void loginWithRedirect({
+        appState: { returnTo: window.location.pathname },
+      });
+    }
+  }, [authLoading, isAuthenticated, loginWithRedirect]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -77,7 +87,7 @@ function ProfilePage() {
     { id: 3, title: 'Jazz at Rodney Square', date: 'Nov 28, 2025', location: 'Wilmington, DE' },
   ];
 
-  if (isLoading) {
+  if (authLoading || !isAuthenticated || isLoading) {
     return (
       <div className="min-h-screen bg-black pt-28 px-6">
         <LoadingSpinner fullScreen message="Loading profile..." />
