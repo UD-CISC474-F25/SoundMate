@@ -1,26 +1,108 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
+import { Trash2 } from 'lucide-react';
 import { Avatar } from '../components/Avatar/Avatar';
+import { LoadingSpinner } from '../components/LoadingSpinner/LoadingSpinner';
+import { FilterTabs } from '../components/FilterTabs/FilterTabs';
+import { ProfileSuccessMessage } from '../components/ProfileSuccessMessage/ProfileSuccessMessage';
+import { ProfileErrorState } from '../components/ProfileErrorState/ProfileErrorState';
+import { ArtistCard } from '../components/ArtistCard/ArtistCard';
+import { EventList } from '../components/EventList/EventList';
+import { Modal } from '../components/Modal/Modal';
+import { FormInput } from '../components/FormInput/FormInput';
+import { FormTextarea } from '../components/FormTextarea/FormTextarea';
+import { AuroraRay } from '../components/Animations';
+import { useApiClient, useApiQuery } from '../integrations/api';
+import { useProfileEdit } from '../hooks/useProfileEdit';
+import { useAccountDelete } from '../hooks/useAccountDelete';
+import { APP_CONFIG } from '../constants/app';
 
 export const Route = createFileRoute('/profile')({
   component: ProfilePage,
 });
 
+type UserProfile = {
+  id: string;
+  email?: string | null;
+  username?: string | null;
+  displayName?: string | null;
+  bio?: string | null;
+  profilePhotoUrl?: string | null;
+  spotifyProfileUrl?: string | null;
+  showSpotifyProfile?: boolean;
+  isOnboarded?: boolean;
+  createdAt?: string;
+  topArtists: Array<{
+    id: string;
+    spotifyArtistId: string;
+    name: string;
+    genres: Array<string>;
+    imageUrl?: string | null;
+    spotifyUri?: string | null;
+    rank: number;
+    timeRange: string;
+  }>;
+};
+
+type TimeRange = 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
+
 function ProfilePage() {
-  // Mock user data (replace later with Prisma fetch)
-  const mockUser = {
-    name: 'Music Lover',
-    pronouns: 'they/them',
-    school: 'University of Delaware',
-    bio: 'Always looking for new music and concert buddies!',
-    friendsCount: 8,
+  const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [activeTab, setActiveTab] = useState('created');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('SHORT_TERM');
+  const { request } = useApiClient();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      void loginWithRedirect({
+        appState: { returnTo: window.location.pathname },
+      });
+    }
+  }, [authLoading, isAuthenticated, loginWithRedirect]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('spotify') === 'connected') {
+      setShowSuccessMessage(true);
+      window.history.replaceState({}, '', '/profile');
+      setTimeout(() => setShowSuccessMessage(false), 5000);
+    }
+  }, []);
+
+  const { data: user, isLoading, isError } = useApiQuery<UserProfile>(
+    ['users', 'me', 'profile', selectedTimeRange],
+    `/users/me/profile?timeRange=${selectedTimeRange}`
+  );
+
+  const profileEdit = useProfileEdit(user, selectedTimeRange);
+  const accountDelete = useAccountDelete();
+
+  const handleConnectSpotify = async () => {
+    try {
+      const data = await request<{ authUrl: string }>('/auth/spotify/auth-url');
+      window.location.href = data.authUrl;
+    } catch (error) {
+      console.error('Failed to get Spotify auth URL:', error);
+    }
   };
 
-  const mockTopArtists = [
-    { id: 1, name: 'Tame Impala', imageUrl: '/artist1.jpg' },
-    { id: 2, name: 'Phoebe Bridgers', imageUrl: '/artist2.jpg' },
-    { id: 3, name: 'The Weeknd', imageUrl: '/artist3.jpg' },
-  ];
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = await profileEdit.submitUpdate();
+    if (!result.success) {
+      alert('Failed to update profile. Please try again.');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const result = await accountDelete.confirmDelete();
+    if (!result.success) {
+      alert('Failed to delete account. Please try again.');
+    }
+  };
+
 
   const mockCreatedEvents = [
     { id: 1, title: 'Indie Night at The Queen', date: 'Nov 22, 2025', location: 'Wilmington, DE' },
@@ -31,109 +113,255 @@ function ProfilePage() {
     { id: 3, title: 'Jazz at Rodney Square', date: 'Nov 28, 2025', location: 'Wilmington, DE' },
   ];
 
-  const [activeTab, setActiveTab] = useState('created');
+  if (authLoading || !isAuthenticated || isLoading) {
+    return (
+      <div className="min-h-screen bg-black pt-28 px-6">
+        <LoadingSpinner fullScreen message="Loading profile..." />
+      </div>
+    );
+  }
+
+  if (isError || !user) return <ProfileErrorState />;
 
   return (
-    <div className="min-h-screen bg-black pt-20 px-6 text-gray-100">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-black pt-28 px-6 text-gray-100">
+      <div className="w-full md:w-[80%] mx-auto">
+        {showSuccessMessage && <ProfileSuccessMessage />}
 
-        {/* Profile Header */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 mb-6">
-          <div className="flex items-start gap-6 mb-6">
-            <Avatar size="large" name={mockUser.name} />
+        <AuroraRay className="mb-6">
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-8">
+            <div className="flex items-start gap-6">
+            <Avatar
+              size="large"
+              name={user.displayName || user.username || 'User'}
+              imageSrc={user.profilePhotoUrl || undefined}
+            />
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-1">{mockUser.name}</h1>
-              <p className="text-gray-400 mb-1">{mockUser.pronouns}</p>
-              <p className="text-gray-400 mb-2">{mockUser.school}</p>
-              <p className="text-gray-300">{mockUser.bio}</p>
-              <p className="text-gray-400 mt-2">Friends: {mockUser.friendsCount}</p>
+              <h1 className="text-3xl font-bold mb-1 text-white">
+                {user.displayName || user.username || 'Anonymous User'}
+              </h1>
+              <p className="text-gray-400 mb-1">@{user.username || 'username'}</p>
+              {user.email && (
+                <p className="text-gray-400 mb-2">{user.email}</p>
+              )}
+              <p className="text-gray-300">{user.bio || 'No bio yet'}</p>
+              {user.spotifyProfileUrl && user.showSpotifyProfile && (
+                <a
+                  href={user.spotifyProfileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 mt-3 text-green-400 hover:text-green-300 cursor-pointer"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                  </svg>
+                  <span className="hidden md:inline">View Spotify Profile</span>
+                  <span className="md:hidden">Spotify Profile</span>
+                </a>
+              )}
             </div>
-            <button className="px-4 py-2 border-2 border-gray-600 text-gray-300 rounded hover:bg-gray-800 hover:text-white transition-colors font-medium">
-              Edit Profile
+            <button
+              onClick={profileEdit.openEditModal}
+              className="px-4 py-2 border-2 border-white/40 text-white rounded-full hover:bg-white/10 hover:border-white/60 transition-all font-medium cursor-pointer"
+            >
+              <span className="hidden md:inline">Edit Profile</span>
+              <svg className="md:hidden w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
             </button>
           </div>
-        </div>
-
-        {/* Music Info Section */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 mb-6">
-          <h2 className="text-2xl font-bold mb-4">Top Artists</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {mockTopArtists.map((artist) => (
-              <div key={artist.id} className="text-center">
-                <img
-                  src={artist.imageUrl}
-                  alt={artist.name}
-                  className="w-24 h-24 rounded-full mx-auto mb-2 object-cover"
-                />
-                <p>{artist.name}</p>
-              </div>
-            ))}
           </div>
-        </div>
+        </AuroraRay>
 
-        {/* Events Section */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-8">
-          <h2 className="text-2xl font-bold mb-4">Your Events</h2>
+        <AuroraRay className="mb-6">
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-8">
+          <h2 className="text-2xl font-bold text-white mb-4">Top Artists</h2>
+
+          <div className="mb-6">
+            <FilterTabs
+              tabs={[
+                { value: 'SHORT_TERM', label: APP_CONFIG.TIME_RANGES.SHORT_TERM.label },
+                { value: 'MEDIUM_TERM', label: APP_CONFIG.TIME_RANGES.MEDIUM_TERM.label },
+                { value: 'LONG_TERM', label: APP_CONFIG.TIME_RANGES.LONG_TERM.label },
+              ]}
+              activeTab={selectedTimeRange}
+              onChange={(value) => setSelectedTimeRange(value as TimeRange)}
+              className="mb-3"
+            />
+            <p className="text-sm text-gray-400">
+              {APP_CONFIG.TIME_RANGES[selectedTimeRange].description}
+            </p>
+          </div>
+
+          {user.topArtists.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {user.topArtists.slice(0, APP_CONFIG.TOP_ARTISTS.DISPLAY_COUNT).map((artist) => (
+                <ArtistCard key={artist.id} artist={artist} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-400 mb-4">
+                No top artists synced yet. Connect your Spotify account to see your favorite artists!
+              </p>
+              <button
+                onClick={handleConnectSpotify}
+                className="inline-block px-6 py-3 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700 transition-all shadow-lg cursor-pointer"
+              >
+                Connect Spotify
+              </button>
+            </div>
+          )}
+          </div>
+        </AuroraRay>
+
+        <AuroraRay className="mb-6">
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-8">
+          <h2 className="text-2xl font-bold mb-4 text-white">Your Events</h2>
           <div className="flex gap-4 mb-4">
             <button
-              className={`px-4 py-2 rounded ${activeTab === 'created' ? 'bg-gray-700' : 'bg-gray-800'}`}
+              className={`px-4 py-2 rounded-full transition-all cursor-pointer ${
+                activeTab === 'created'
+                  ? 'bg-white text-black'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
               onClick={() => setActiveTab('created')}
             >
               Created
             </button>
             <button
-              className={`px-4 py-2 rounded ${activeTab === 'attending' ? 'bg-gray-700' : 'bg-gray-800'}`}
+              className={`px-4 py-2 rounded-full transition-all cursor-pointer ${
+                activeTab === 'attending'
+                  ? 'bg-white text-black'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
               onClick={() => setActiveTab('attending')}
             >
               Attending
             </button>
           </div>
 
-          {activeTab === 'created' && (
-            <EventList events={mockCreatedEvents} editable />
-          )}
-          {activeTab === 'attending' && (
-            <EventList events={mockAttendingEvents} />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Temporary EventList for Displaying  Mockup Events
-type EventItem = {
-  id: number;
-  title: string;
-  date: string;
-  location: string;
-};
-
-type EventListProps = {
-  events: Array<EventItem>;
-  editable?: boolean;
-};
-
-function EventList({ events, editable = false }: EventListProps) {
-  return (
-    <ul className="space-y-4">
-      {events.map((event) => (
-        <li key={event.id} className="border border-gray-800 p-4 rounded-lg bg-gray-950">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-semibold text-white">{event.title}</h3>
-              <p className="text-gray-400">{event.date}</p>
-              <p className="text-gray-500 text-sm">{event.location}</p>
-            </div>
-            {editable && (
-              <div className="flex gap-8">
-                <button className="text-blue-400 hover:text-blue-300">Edit</button>
-                <button className="text-red-400 hover:text-red-300">Delete</button>
-              </div>
-            )}
+          {activeTab === 'created' && <EventList events={mockCreatedEvents} editable />}
+          {activeTab === 'attending' && <EventList events={mockAttendingEvents} />}
           </div>
-        </li>
-      ))}
-    </ul>
+        </AuroraRay>
+      </div>
+
+      {/* Edit Profile Modal */}
+      {profileEdit.showEditModal && (
+        <Modal
+          isOpen={profileEdit.showEditModal}
+          onClose={profileEdit.closeEditModal}
+          title="Edit Profile"
+        >
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <FormInput
+              id="displayName"
+              label="Display Name"
+              type="text"
+              value={profileEdit.editForm.displayName}
+              onChange={(value) => profileEdit.updateField('displayName', value)}
+              placeholder="Your display name"
+              required
+            />
+
+            <FormTextarea
+              id="bio"
+              label="Bio"
+              value={profileEdit.editForm.bio}
+              onChange={(value) => profileEdit.updateField('bio', value)}
+              placeholder="Tell us about yourself..."
+              rows={3}
+              maxLength={500}
+            />
+
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="showSpotifyProfile"
+                checked={profileEdit.editForm.showSpotifyProfile}
+                onChange={(e) => profileEdit.updateField('showSpotifyProfile', e.target.checked)}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-green-500 focus:ring-green-500 cursor-pointer"
+              />
+              <label htmlFor="showSpotifyProfile" className="text-gray-300 text-sm cursor-pointer">
+                Show Spotify profile link on my public profile
+              </label>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={profileEdit.closeEditModal}
+                className="flex-1 px-4 py-2 border-2 border-white/40 hover:border-white/60 text-white rounded-lg font-medium transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={profileEdit.isUpdating}
+                className="flex-1 px-4 py-2 bg-white hover:bg-gray-100 text-black rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {profileEdit.isUpdating ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+
+            <div className="pt-6 mt-6 border-t border-gray-700">
+              <button
+                type="button"
+                onClick={() => {
+                  profileEdit.closeEditModal();
+                  accountDelete.openDeleteModal();
+                }}
+                className="w-full text-white hover:text-red-500 hover:underline transition-all text-sm cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Trash2 size={14} />
+                Delete Account
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {accountDelete.showDeleteModal && (
+        <Modal
+          isOpen={accountDelete.showDeleteModal}
+          onClose={accountDelete.closeDeleteModal}
+          title="Delete Account"
+        >
+          <div className="space-y-4">
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
+              <p className="text-red-400 font-semibold mb-2">⚠️ Warning</p>
+              <p className="text-gray-300 text-sm">
+                This action cannot be undone. This will permanently delete your account,
+                all your data, events, and connections.
+              </p>
+            </div>
+
+            <p className="text-gray-400 text-sm">
+              Are you absolutely sure you want to delete your account?
+            </p>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={accountDelete.closeDeleteModal}
+                className="flex-1 px-4 py-2 border-2 border-white/40 hover:border-white/60 text-white rounded-lg font-medium transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={accountDelete.isDeleting}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {accountDelete.isDeleting ? 'Deleting...' : 'Yes, Delete My Account'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { Calendar, Clock, Link as LinkIcon, MapPin, Plus, Users, X } from 'lucide-react';
 
 export const Route = createFileRoute('/events')({
@@ -48,10 +49,19 @@ interface Event {
 }
 
 function EventsPage() {
+  const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'going' | 'maybe'>('all');
   const [visibleCount, setVisibleCount] = useState(10);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      void loginWithRedirect({
+        appState: { returnTo: window.location.pathname },
+      });
+    }
+  }, [authLoading, isAuthenticated, loginWithRedirect]);
   const [events, setEvents] = useState<Array<Event>>([
   // Mock data for development - remove when API is ready - Generated with AI
   {
@@ -214,6 +224,17 @@ function EventsPage() {
     }
     return event.attendees.filter(a => a.status === 'GOING' || a.status === 'MAYBE').length;
   };
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black pt-20 px-6 pb-12">

@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { Check, Clock, Music, Search, UserCheck, UserPlus, X } from 'lucide-react';
+import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
 
 export const Route = createFileRoute('/discover')({
   component: FriendsDiscoveryPage,
@@ -31,7 +33,18 @@ interface UserProfile {
 }
 
 function FriendsDiscoveryPage() {
+  const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
+  const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
+
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      void loginWithRedirect({
+        appState: { returnTo: window.location.pathname },
+      });
+    }
+  }, [authLoading, isAuthenticated, loginWithRedirect]);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [users, setUsers] = useState<Array<UserProfile>>([
     {
@@ -212,8 +225,19 @@ function FriendsDiscoveryPage() {
     );
   };
 
+  if (authLoading || !isAuthenticated || isCheckingOnboarding || needsOnboarding) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-black pt-20 px-6 pb-12">
+    <div className="min-h-screen bg-black pt-28 px-6 pb-12">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">

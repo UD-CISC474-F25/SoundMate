@@ -4,16 +4,22 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+  // Enable CORS for frontend
   app.enableCors({
-    origin: frontendUrl,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin: [
+      'http://localhost:3001',
+      'https://soundmate.soundmatedevs.workers.dev',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   const port = process.env.PORT || 3000;
   const host = process.env.HOST || undefined;
   await app.listen(port, host);
+
 }
 
 void bootstrap();

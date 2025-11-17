@@ -10,6 +10,7 @@ export type LoginIn = z.infer<typeof LoginIn>;
 
 // Complete onboarding after initial login
 export const CompleteOnboardingIn = z.object({
+  email: z.string().email({ message: 'Invalid email address' }),
   username: z
     .string()
     .min(3, { message: 'Username must be at least 3 characters long' })
@@ -24,8 +25,9 @@ export const CompleteOnboardingIn = z.object({
   bio: z
     .string()
     .max(500, { message: 'Bio must not exceed 500 characters' })
-    .optional()
-    .nullable(),
+    .transform((val) => val === '' ? null : val)
+    .nullable()
+    .optional(),
 });
 
 export type CompleteOnboardingIn = z.infer<typeof CompleteOnboardingIn>;
