@@ -170,7 +170,7 @@ export function EventList({
       {onSeeMore && visibleCount < (filteredEventsLength ?? 0) && (
         <button
           onClick={onSeeMore}
-          className="w-full py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+          className="w-full py-3 bg-white-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
         >
           See More ({filteredEventsLength - visibleCount} more)
         </button>

@@ -1,5 +1,4 @@
 import React from "react";
-import { X } from "lucide-react";
 import { FormInput } from "../FormInput/FormInput";
 
 interface EventFormProps {
@@ -20,6 +19,33 @@ interface EventFormProps {
   isSaving: boolean;
 }
 
+//Frosted glass background + Blurred Overlay
+function FrostedModal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      aria-modal="true"
+      role="dialog"
+      tabIndex={-1}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg max-w-lg w-full p-6 text-white relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close modal"
+          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold"
+        >
+          &times;
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function EventForm({
   title,
   submitLabel,
@@ -30,20 +56,12 @@ export function EventForm({
   isSaving,
 }: EventFormProps) {
   return (
-    <div className="p-6">
+    <FrostedModal onClose={onCancel}>
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">{title}</h2>
-        <button
-          onClick={onCancel}
-          className="text-gray-400 hover:text-white cursor-pointer"
-        >
-          <X size={24} />
-        </button>
-      </div>
+      <h2 className="text-2xl font-bold mb-6">{title}</h2>
 
-      <form onSubmit={onSubmit} className="space-y-4">
-
+      {/* Form */}
+      <form onSubmit={onSubmit} className="space-y-5 text-white">
         <FormInput
           id="title"
           label="Title"
@@ -74,15 +92,16 @@ export function EventForm({
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-200 mb-2">
+          <label htmlFor="description" className="block mb-2 font-medium">
             Description
           </label>
           <textarea
+            id="description"
             rows={4}
             value={form.description}
             onChange={(e) => updateField("description", e.target.value)}
-            className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all resize-none"
             placeholder="Tell people what to expect..."
+            className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-white/50 resize-none transition"
           />
         </div>
 
@@ -98,15 +117,16 @@ export function EventForm({
         {/* Visibility + Max Attendees */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-2">
+            <label htmlFor="visibility" className="block mb-2 font-medium">
               Visibility
             </label>
             <select
+              id="visibility"
               value={form.visibility}
               onChange={(e) =>
                 updateField("visibility", e.target.value as "PUBLIC" | "PRIVATE")
               }
-              className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+              className="w-full px-4 py-2 bg-black/800 border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/800 transition"
             >
               <option value="PUBLIC">Public</option>
               <option value="PRIVATE">Private</option>
@@ -123,24 +143,24 @@ export function EventForm({
           />
         </div>
 
-        {/* Footer */}
-        <div className="flex gap-3 pt-4">
+        {/* Footer buttons */}
+        <div className="flex gap-4 pt-6">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-red-800 hover:bg-gray-700 rounded-lg font-medium transition"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="flex-1 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? "Saving..." : submitLabel}
           </button>
         </div>
       </form>
-    </div>
+    </FrostedModal>
   );
 }
