@@ -94,26 +94,6 @@ export const EventAttendeeOut = z.object({
 
 export type EventAttendeeOut = z.infer<typeof EventAttendeeOut>;
 
-export const EventCommentOut = z.object({
-  id: z.string(),
-  content: z.string(),
-  createdAt: z.coerce.date(),
-  user: z.object({
-    id: z.string(),
-    username: z.string(),
-    displayName: z.string().nullable(),
-    profilePhotoUrl: z.string().nullable(),
-  }),
-});
-
-export type EventCommentOut = z.infer<typeof EventCommentOut>;
-
-export const EventCommentCreateIn = z.object({
-  content: z.string().min(1).max(500),
-});
-
-export type EventCommentCreateIn = z.infer<typeof EventCommentCreateIn>;
-
 export const EventsListFilter = Pagination.extend({
   visibility: EventVisibilityEnum.optional(),
   creatorId: z.string().optional(),

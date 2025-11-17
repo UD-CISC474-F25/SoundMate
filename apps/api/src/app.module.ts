@@ -8,9 +8,10 @@ import { EventsModule } from './events/events.module';
 import { ConnectionsModule } from './connections/connections.module';
 import { MatchingModule } from './matching/matching.module';
 import { SpotifyModule } from './spotify/spotify.module';
+import { CommentsModule } from './comments/comments.module';
 
 @Module({
-  imports: [LinksModule, AuthModule, UsersModule, SpotifyModule, MatchingModule, ConnectionsModule, EventsModule],
+  imports: [LinksModule, AuthModule, UsersModule, SpotifyModule, MatchingModule, ConnectionsModule, EventsModule, CommentsModule],
   controllers: [AppController],
   providers: [AppService],
 })

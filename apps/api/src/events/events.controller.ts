@@ -7,7 +7,6 @@ import {
   Param,
   Body,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -40,20 +39,10 @@ export class EventsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @UsePipes(new ZodValidationPipe(EventCreateIn))
   async create(
     @CurrentUser() jwtUser: JwtUser,
-    @Body()
-    body: {
-      title: string;
-      description?: string | null;
-      dateTime?: string | null;
-      location?: string | null;
-      musicTag?: string | null;
-      artistId?: string | null;
-      visibility?: 'PUBLIC' | 'PRIVATE';
-      maxAttendees?: number | null;
-    },
+    @Body(new ZodValidationPipe(EventCreateIn))
+    body: any,
   ) {
     const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.eventsService.create(user.id, body);
@@ -61,21 +50,11 @@ export class EventsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  @UsePipes(new ZodValidationPipe(EventUpdateIn))
   async update(
     @Param('id') id: string,
     @CurrentUser() jwtUser: JwtUser,
-    @Body()
-    body: {
-      title?: string;
-      description?: string | null;
-      dateTime?: string | null;
-      location?: string | null;
-      musicTag?: string | null;
-      artistId?: string | null;
-      visibility?: 'PUBLIC' | 'PRIVATE';
-      maxAttendees?: number | null;
-    },
+    @Body(new ZodValidationPipe(EventUpdateIn))
+    body: any,
   ) {
     const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.eventsService.update(id, user.id, body);
@@ -90,11 +69,11 @@ export class EventsController {
 
   @Post(':id/rsvp')
   @UseGuards(JwtAuthGuard)
-  @UsePipes(new ZodValidationPipe(EventRsvpIn))
   async rsvp(
     @Param('id') id: string,
     @CurrentUser() jwtUser: JwtUser,
-    @Body() body: { status: string },
+    @Body(new ZodValidationPipe(EventRsvpIn))
+    body: { status: string },
   ) {
     const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.eventsService.rsvp(id, user.id, body.status);
