@@ -37,9 +37,27 @@ function FriendsDiscoveryPage() {
   const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSpotifySuccess, setShowSpotifySuccess] = useState(false);
+  const [showSpotifyError, setShowSpotifyError] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('spotify') === 'connected') {
+      setShowSpotifySuccess(true);
+      window.history.replaceState({}, '', '/discover');
+      setTimeout(() => setShowSpotifySuccess(false), 5000);
+    } else if (params.get('spotify') === 'error') {
+      setShowSpotifyError(true);
+      window.history.replaceState({}, '', '/discover');
+      setTimeout(() => setShowSpotifyError(false), 5000);
+    }
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isFromSpotifyCallback = params.get('spotify') === 'connected' || params.get('spotify') === 'error';
+
+    if (!authLoading && !isAuthenticated && !isFromSpotifyCallback) {
       void loginWithRedirect({
         appState: { returnTo: window.location.pathname },
       });
@@ -239,7 +257,17 @@ function FriendsDiscoveryPage() {
   return (
     <div className="min-h-screen bg-black pt-28 px-6 pb-12">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
+        {showSpotifySuccess && (
+          <div className="mb-6 bg-green-500/20 border border-green-500/50 rounded-lg p-4 text-green-400">
+            Spotify connected successfully! Your music data has been synced.
+          </div>
+        )}
+        {showSpotifyError && (
+          <div className="mb-6 bg-red-500/20 border border-red-500/50 rounded-lg p-4 text-red-400">
+            Failed to connect Spotify. Please try again.
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Discover Friends</h1>
           <p className="text-gray-400">
@@ -247,7 +275,6 @@ function FriendsDiscoveryPage() {
           </p>
         </div>
 
-        {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -269,7 +296,6 @@ function FriendsDiscoveryPage() {
           </div>
         </div>
 
-        {/* User Cards */}
         <div className="space-y-3">
           {filteredUsers.length === 0 ? (
             <div className="bg-gray-900 border border-gray-800 rounded-lg p-12 text-center">
@@ -286,12 +312,10 @@ function FriendsDiscoveryPage() {
                 className="bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-gray-700 cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  {/* Profile Photo */}
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
                     {(user.displayName || user.username).charAt(0).toUpperCase()}
                   </div>
 
-                  {/* User Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-white font-semibold truncate">
@@ -309,7 +333,6 @@ function FriendsDiscoveryPage() {
                     )}
                   </div>
 
-                  {/* Action Button */}
                   <div className="flex-shrink-0">
                     {getConnectionButton(user)}
                   </div>
@@ -319,7 +342,7 @@ function FriendsDiscoveryPage() {
           )}
         </div>
 
-        {/* User Profile Modal */}
+
         {selectedUser && (
           <div 
             className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6"

@@ -15,7 +15,9 @@ function OnboardingPage() {
   const { request } = useApiClient();
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    const hasJustAuthenticated = window.location.search.includes('code=') || window.location.search.includes('state=');
+
+    if (!authLoading && !isAuthenticated && !hasJustAuthenticated) {
       void loginWithRedirect({
         appState: { returnTo: window.location.pathname },
       });

@@ -32,6 +32,7 @@ model User {
   createdEvents        Event[]            @relation("EventCreator")
   eventAttendances     EventAttendee[]
   eventComments        EventComment[]
+  links                Link[]
 
   @@map("users")
 }
@@ -179,4 +180,19 @@ enum TimeRange {
   SHORT_TERM
   MEDIUM_TERM
   LONG_TERM
+}
+
+model Link {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, order])
+  @@map("links")
 }
