@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import { Avatar } from '../components/Avatar/Avatar';
 import { LoadingSpinner } from '../components/LoadingSpinner/LoadingSpinner';
 import { FilterTabs } from '../components/FilterTabs/FilterTabs';
@@ -16,6 +16,8 @@ import { AuroraRay } from '../components/Animations';
 import { useApiClient, useApiQuery } from '../integrations/api';
 import { useProfileEdit } from '../hooks/useProfileEdit';
 import { useAccountDelete } from '../hooks/useAccountDelete';
+import { useProfileLinks } from '../hooks/useProfileLinks';
+import { LinkForm } from '../components/LinkForm/LinkForm';
 import { APP_CONFIG } from '../constants/app';
 
 export const Route = createFileRoute('/profile')({
@@ -78,6 +80,7 @@ function ProfilePage() {
 
   const profileEdit = useProfileEdit(user, selectedTimeRange);
   const accountDelete = useAccountDelete();
+  const profileLinks = useProfileLinks();
 
   const handleConnectSpotify = async () => {
     try {
@@ -144,7 +147,27 @@ function ProfilePage() {
               {user.email && (
                 <p className="text-gray-400 mb-2">{user.email}</p>
               )}
-              <p className="text-gray-300">{user.bio || 'No bio yet'}</p>
+              <p className="text-gray-300 mb-2">{user.bio || 'No bio yet'}</p>
+
+              {profileLinks.links.length > 0 && (
+                <div className="space-y-1 mb-2">
+                  {profileLinks.links.map((link) => (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 cursor-pointer mr-3"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      {link.title}
+                    </a>
+                  ))}
+                </div>
+              )}
+
               {user.spotifyProfileUrl && user.showSpotifyProfile && (
                 <a
                   href={user.spotifyProfileUrl}
@@ -305,6 +328,65 @@ function ProfilePage() {
               </button>
             </div>
 
+            <div className="pt-4 border-t border-gray-700 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-white">Your Links</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    profileEdit.closeEditModal();
+                    profileLinks.openCreateModal();
+                  }}
+                  className="text-sm px-3 py-1.5 border border-white/40 text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <Plus size={14} />
+                  Add Link
+                </button>
+              </div>
+              {profileLinks.links.length > 0 ? (
+                <div className="space-y-2">
+                  {profileLinks.links.map((link) => (
+                    <div
+                      key={link.id}
+                      className="flex items-center justify-between p-2 bg-white/5 rounded-lg"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{link.title}</p>
+                        <p className="text-xs text-gray-400 truncate">{link.url}</p>
+                      </div>
+                      <div className="flex gap-2 ml-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            profileEdit.closeEditModal();
+                            profileLinks.openEditModal(link);
+                          }}
+                          className="text-gray-400 hover:text-white transition-colors cursor-pointer p-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Delete "${link.title}"?`)) {
+                              profileLinks.deleteLink(link.id);
+                            }
+                          }}
+                          className="text-gray-400 hover:text-red-400 transition-colors cursor-pointer p-1"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">No links added yet</p>
+              )}
+            </div>
+
             <div className="pt-6 mt-6 border-t border-gray-700">
               <button
                 type="button"
@@ -360,6 +442,24 @@ function ProfilePage() {
               </button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {profileLinks.showLinksModal && (
+        <Modal
+          isOpen={profileLinks.showLinksModal}
+          onClose={profileLinks.closeModal}
+          title={profileLinks.editingLink ? 'Edit Link' : 'Add Link'}
+        >
+          <LinkForm
+            initialData={profileLinks.editingLink ? {
+              title: profileLinks.editingLink.title,
+              url: profileLinks.editingLink.url,
+            } : undefined}
+            onSubmit={profileLinks.submitLink}
+            onCancel={profileLinks.closeModal}
+            isSubmitting={profileLinks.isSubmitting}
+          />
         </Modal>
       )}
     </div>
