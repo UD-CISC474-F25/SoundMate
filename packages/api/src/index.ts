@@ -22,14 +22,17 @@ export {
   EventUpdateIn,
   EventRsvpIn,
   EventAttendeeOut,
-  EventCommentOut,
-  EventCommentCreateIn,
-  EventCommentUpdateIn,
   EventsListFilter,
   EventVisibilityEnum,
   AttendeeStatusEnum,
   ArtistRef,
 } from './events';
+
+export {
+  EventCommentOut,
+  EventCommentCreateIn,
+  EventCommentUpdateIn,
+} from './comments';
 
 export {
   SpotifyProfileOut,
