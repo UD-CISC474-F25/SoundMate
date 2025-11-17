@@ -56,8 +56,9 @@ function FriendsDiscoveryPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const isFromSpotifyCallback = params.get('spotify') === 'connected' || params.get('spotify') === 'error';
+    const hasJustAuthenticated = window.location.search.includes('code=') || window.location.search.includes('state=');
 
-    if (!authLoading && !isAuthenticated && !isFromSpotifyCallback) {
+    if (!authLoading && !isAuthenticated && !isFromSpotifyCallback && !hasJustAuthenticated) {
       void loginWithRedirect({
         appState: { returnTo: window.location.pathname },
       });
