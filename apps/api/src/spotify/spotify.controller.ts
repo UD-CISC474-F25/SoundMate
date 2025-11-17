@@ -18,7 +18,6 @@ export class SpotifyController {
     @CurrentUser() jwtUser: JwtUser,
     @Query('timeRange') timeRange?: string,
   ) {
-    // Find user by auth0Id
     const user = await this.prisma.user.findUnique({
       where: { auth0Id: jwtUser.sub },
       include: { spotifyStats: true },
@@ -28,7 +27,6 @@ export class SpotifyController {
       throw new Error('User not found');
     }
 
-    // Check if user has Spotify tokens
     if (!user.spotifyStats) {
       return {
         success: false,
@@ -37,11 +35,8 @@ export class SpotifyController {
       };
     }
 
-    // Sync top artists
     const result = await this.spotifyService.syncTopArtists(
       user.id,
-      user.spotifyStats.accessToken,
-      user.spotifyStats.refreshToken,
       timeRange || 'LONG_TERM',
     );
 
