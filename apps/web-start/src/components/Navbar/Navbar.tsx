@@ -3,6 +3,13 @@ import { Link } from '@tanstack/react-router';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Avatar } from '../Avatar/Avatar';
 import { AuroraRay } from '../Animations';
+import { useApiQuery } from '../../integrations/api';
+
+type UserProfile = {
+  displayName?: string | null;
+  username?: string | null;
+  profilePhotoUrl?: string | null;
+};
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,6 +20,12 @@ export function Navbar() {
     loginWithRedirect,
     logout: auth0Logout
   } = useAuth0();
+
+  const { data: userProfile } = useApiQuery<UserProfile>(
+    ['users', 'me', 'profile-basic'],
+    '/users/me/profile',
+    { enabled: isAuthenticated }
+  );
 
   // Hide navbar links on onboarding page
   const isOnboardingPage = typeof window !== 'undefined' && window.location.pathname === '/onboarding';
@@ -34,7 +47,7 @@ export function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-6 pointer-events-none">
-      <AuroraRay rounded="rounded-full">
+      <AuroraRay variant="warm" rounded="rounded-full">
         <nav className="flex items-center justify-between gap-4 px-6 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full shadow-lg pointer-events-auto transition-all duration-300 hover:bg-white/15 hover:shadow-xl">
           <Link
             to="/"
@@ -120,7 +133,11 @@ export function Navbar() {
                 to="/profile"
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
               >
-                <Avatar size="small" imageSrc={user?.picture} name={user?.name} />
+                <Avatar
+                  size="small"
+                  imageSrc={userProfile?.profilePhotoUrl || undefined}
+                  name={userProfile?.displayName || userProfile?.username || user?.name}
+                />
               </Link>
               <button
                 onClick={handleLogout}
