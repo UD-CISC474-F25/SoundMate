@@ -9,12 +9,7 @@ export const Route = createFileRoute('/')({
 function HomePage() {
   const images = [
     '/bg-images/pexels-chris-clark-1933184-5804422.jpg',
-    '/bg-images/pexels-pixabay-270756.jpg',
-    '/bg-images/pexels-pixabay-326235.jpg',
     '/bg-images/pexels-slimmars-13-197677686-13037412.jpg',
-    '/bg-images/pexels-slimmars-13-197677686-13518516.jpg',
-    '/bg-images/pexels-slimmars-13-197677686-28581576.jpg',
-    '/bg-images/pexels-slimmars-13-197677686-28674539.jpg',
     '/bg-images/pexels-slimmars-13-197677686-28690469.jpg',
   ];
 
