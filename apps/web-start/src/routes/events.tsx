@@ -3,88 +3,28 @@ import { useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Plus } from 'lucide-react';
 import { useEvents } from '../hooks/useEvents';
-import type { Event } from '../hooks/useEvents';
 import { TypewriterText } from '../components/Animations';
 
 import { EventList } from '../components/EventList/EventList';
 import { CreateEventForm } from '../components/EventForm/CreateEventForm';
 import { EditEventForm } from '../components/EventForm/EditEventForm';
-
+import { EventModal } from '../components/EventList/EventModal';
+import type { Event } from '../hooks/useEvents';
 
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-gray-900 p-6 rounded-xl w-full max-w-lg relative border border-gray-700">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 p-6 rounded-xl max-w-lg w-full relative border border-gray-700 shadow-lg">
         <button
-          className="absolute top-3 right-3 text-gray-400 hover:text-white"
+          className="absolute top-3 right-3 text-gray-400 hover:text-white text-xl font-bold"
           onClick={onClose}
+          aria-label="Close modal"
         >
-          ✕
+          ×
         </button>
         {children}
       </div>
     </div>
-  );
-}
-
-function EventModal({
-  event,
-  onClose,
-  onDelete,
-  onEdit,
-  onRsvp,
-  getUserRsvpStatus,
-  isEventCreator,
-}: any) {
-  const status = getUserRsvpStatus(event);
-
-  return (
-    <Modal onClose={onClose}>
-      <h2 className="text-2xl font-bold text-white mb-4">{event.title}</h2>
-
-      <p className="text-gray-400 mb-2">{event.location}</p>
-      <p className="text-gray-400 mb-6">
-        {new Date(event.dateTime).toLocaleString()}
-      </p>
-
-      <div className="flex gap-3 mb-6">
-        <button
-          className={`px-4 py-2 rounded bg-green-600 text-white`}
-          onClick={() => onRsvp(event.id, 'GOING')}
-        >
-          Going
-        </button>
-        <button
-          className={`px-4 py-2 rounded bg-yellow-600 text-white`}
-          onClick={() => onRsvp(event.id, 'MAYBE')}
-        >
-          Maybe
-        </button>
-        <button
-          className={`px-4 py-2 rounded bg-gray-700 text-white`}
-          onClick={() => onRsvp(event.id, 'DECLINED')}
-        >
-          Decline
-        </button>
-      </div>
-
-      {isEventCreator && (
-        <div className="flex gap-3">
-          <button
-            className="px-4 py-2 rounded bg-blue-600 text-white"
-            onClick={() => onEdit(event)}
-          >
-            Edit
-          </button>
-          <button
-            className="px-4 py-2 rounded bg-red-600 text-white"
-            onClick={() => onDelete(event.id)}
-          >
-            Delete
-          </button>
-        </div>
-      )}
-    </Modal>
   );
 }
 
@@ -141,13 +81,13 @@ function EventsPage() {
   const displayedEvents = filteredEvents.slice(0, visibleCount);
 
   /* RSVP HANDLER */
-  const handleRsvp = async (eventId: string, status: any) => {
+  const handleRsvp = async (eventId: string, status: 'GOING' | 'MAYBE' | 'DECLINED') => {
     await rsvpToEvent(eventId, status);
   };
 
   /* DELETE HANDLER */
   const handleDelete = async (eventId: string) => {
-    if (!confirm("Are you sure you want to delete this event?")) return;
+    if (!confirm('Are you sure you want to delete this event?')) return;
     await deleteEvent(eventId);
     setSelectedEvent(null);
   };
@@ -167,16 +107,14 @@ function EventsPage() {
   return (
     <div className="min-h-screen bg-black pt-20 px-6 pb-12">
       <div className="max-w-7xl mx-auto">
-
         {/* HEADER */}
         <div className="flex items-center justify-between mb-8">
-          
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">
-              <TypewriterText text='Events' delay={200}></TypewriterText>
+              <TypewriterText text="Events" delay={200} />
             </h1>
             <p className="text-gray-400">
-              <TypewriterText text='Find concerts and music events near you' delay={500}></TypewriterText>
+              <TypewriterText text="Find concerts and music events near you" delay={500} />
             </p>
           </div>
 
@@ -194,7 +132,7 @@ function EventsPage() {
           {['all', 'going', 'maybe'].map(btn => (
             <button
               key={btn}
-              onClick={() => setFilter(btn as any)}
+              onClick={() => setFilter(btn as 'all' | 'going' | 'maybe')}
               className={`px-4 py-2 rounded-full font-medium transition-colors cursor-pointer capitalize ${
                 filter === btn
                   ? 'bg-white text-black'
@@ -232,7 +170,12 @@ function EventsPage() {
             onEdit={openEditModal}
             onRsvp={handleRsvp}
             isEventCreator={isEventCreator(selectedEvent)}
+            isDeleting={isDeleting}
+            isRsvping={isRsvping}
             getUserRsvpStatus={getUserRsvpStatus}
+            getAttendeeCount={(event, status) => {
+              return event._count.attendees?.[status.toLowerCase()] || 0;
+            }}
           />
         )}
 
@@ -240,12 +183,12 @@ function EventsPage() {
         {showCreateModal && (
           <Modal onClose={closeCreateModal}>
             <CreateEventForm
-                form={createForm}
-                updateField={updateFormField as unknown as (field: string, value: string) => void}
-                onSubmit={submitCreateEvent}
-                onCancel={closeCreateModal}
-                isSaving={isCreating}
-              />
+              form={createForm}
+              updateField={(field: string, value: string) => updateFormField(field as any, value as any)}
+              onSubmit={submitCreateEvent}
+              onCancel={closeCreateModal}
+              isSaving={isCreating}
+            />
           </Modal>
         )}
 
@@ -254,7 +197,7 @@ function EventsPage() {
           <Modal onClose={closeEditModal}>
             <EditEventForm
               form={createForm}
-              updateField={updateFormField as unknown as (field: string, value: string) => void}
+              updateField={(field: string, value: string) => updateFormField(field as any, value as any)}
               onSubmit={submitUpdateEvent}
               onCancel={closeEditModal}
               isSaving={isUpdating}

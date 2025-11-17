@@ -31,6 +31,7 @@ export interface Event {
     };
   }>;
   _count: {
+    attendees: any;
     comments: number;
   };
 }
