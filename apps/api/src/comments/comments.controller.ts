@@ -7,7 +7,6 @@ import {
   Param,
   Body,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -18,7 +17,7 @@ import { ZodValidationPipe } from '../pipes/zod-validation.pipe';
 import { EventCommentCreateIn, EventCommentUpdateIn } from '@repo/api';
 
 @Controller('events/:eventId/comments')
-@UseGuards(JwtAuthGuard)  
+@UseGuards(JwtAuthGuard)
 export class CommentsController {
   constructor(
     private readonly commentsService: CommentsService,
@@ -31,34 +30,33 @@ export class CommentsController {
   }
 
   @Post()
-  @UsePipes(new ZodValidationPipe(EventCommentCreateIn))
   async addComment(
     @Param('eventId') eventId: string,
     @CurrentUser() jwtUser: JwtUser,
-    @Body() body: { content: string },
+    @Body(new ZodValidationPipe(EventCommentCreateIn))
+    body: { content: string },
   ) {
-    const user = await this.usersService.findByEmail(jwtUser.email);
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.commentsService.addComment(eventId, user.id, body.content);
   }
 
-
-@Patch(':commentId')
-@UsePipes(new ZodValidationPipe(EventCommentUpdateIn))
-async updateComment(
-  @Param('commentId') commentId: string,
-  @CurrentUser() jwtUser: JwtUser,
-  @Body() body: { content: string },
-) {
-  const user = await this.usersService.findByEmail(jwtUser.email);
-  return this.commentsService.updateComment(commentId, user.id, body.content);
-}
+  @Patch(':commentId')
+  async updateComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser() jwtUser: JwtUser,
+    @Body(new ZodValidationPipe(EventCommentUpdateIn))
+    body: { content: string },
+  ) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    return this.commentsService.updateComment(commentId, user.id, body.content);
+  }
 
   @Delete(':commentId')
   async deleteComment(
     @Param('commentId') commentId: string,
     @CurrentUser() jwtUser: JwtUser,
   ) {
-    const user = await this.usersService.findByEmail(jwtUser.email);
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.commentsService.deleteComment(commentId, user.id);
   }
 }
