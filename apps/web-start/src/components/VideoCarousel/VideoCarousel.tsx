@@ -4,12 +4,14 @@ interface VideoCarouselProps {
   videos: string[];
   autoPlayInterval?: number;
   className?: string;
+  posterImage?: string;
 }
 
 export function VideoCarousel({
   videos,
   autoPlayInterval = 10000,
-  className = ''
+  className = '',
+  posterImage
 }: VideoCarouselProps) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
@@ -30,6 +32,8 @@ export function VideoCarousel({
           <video
             key={video}
             src={video}
+            poster={posterImage}
+            preload={index === 0 ? 'auto' : 'metadata'}
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
               index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
             }`}

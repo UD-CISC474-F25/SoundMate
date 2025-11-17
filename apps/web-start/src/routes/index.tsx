@@ -1,26 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { AuroraRay, FadeIn, TypewriterText } from '../components/Animations';
-import { VideoCarousel } from '../components/VideoCarousel/VideoCarousel';
+import { ImageCarousel } from '../components/ImageCarousel/ImageCarousel';
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
 function HomePage() {
-  const videos = [
-    '/videos/14994578-uhd_3840_2160_25fps.mp4',
-    '/videos/19807699-uhd_3840_2024_25fps.mp4',
-    '/videos/2034248-uhd_3840_2160_24fps.mp4',
-    '/videos/2040063-hd_1920_1080_24fps.mp4',
-    '/videos/3217373-hd_1920_1080_25fps.mp4',
-    '/videos/4231734-uhd_3840_2160_24fps.mp4',
-    '/videos/5788982-hd_1920_1080_25fps.mp4',
+  const images = [
+    '/bg-images/pexels-chris-clark-1933184-5804422.jpg',
+    '/bg-images/pexels-slimmars-13-197677686-13037412.jpg',
+    '/bg-images/pexels-slimmars-13-197677686-28690469.jpg',
   ];
 
   return (
     <div className="min-h-screen bg-black">
       <section className="relative h-screen w-full overflow-hidden">
-        <VideoCarousel videos={videos} className="h-full" />
+        <ImageCarousel images={images} className="h-full" />
 
         <div className="absolute inset-0 flex items-center justify-center px-6 pt-20">
           <div className="max-w-7xl mx-auto flex flex-col items-center">
