@@ -30,8 +30,20 @@ export class EventsService {
           },
         },
         artist: true,
+        attendees: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                profilePhotoUrl: true,
+              },
+            },
+          },
+        },
         _count: {
-          select: { attendees: true },
+          select: { attendees: true, comments: true },
         },
       },
       orderBy: {
@@ -64,6 +76,9 @@ export class EventsService {
               },
             },
           },
+        },
+        _count: {
+          select: { comments: true },
         },
       },
     });
