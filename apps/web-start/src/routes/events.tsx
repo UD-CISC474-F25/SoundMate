@@ -4,6 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { Plus } from 'lucide-react';
 import { useEvents } from '../hooks/useEvents';
 import type { Event } from '../hooks/useEvents';
+import { TypewriterText } from '../components/Animations';
 
 import { EventList } from '../components/EventList/EventList';
 import { CreateEventForm } from '../components/EventForm/CreateEventForm';
@@ -169,9 +170,14 @@ function EventsPage() {
 
         {/* HEADER */}
         <div className="flex items-center justify-between mb-8">
+          
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Events</h1>
-            <p className="text-gray-400">Find concerts and music events near you</p>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              <TypewriterText text='Events' delay={200}></TypewriterText>
+            </h1>
+            <p className="text-gray-400">
+              <TypewriterText text='Find concerts and music events near you' delay={500}></TypewriterText>
+            </p>
           </div>
 
           <button

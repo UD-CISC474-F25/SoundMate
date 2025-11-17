@@ -1,5 +1,6 @@
 import { Clock, MapPin } from 'lucide-react';
 import type { Event } from '../../hooks/useEvents';
+import {RainbowStripe} from '../Animations/RainbowStripe';
 
 interface EventListProps {
   events: Array<Event>;
@@ -37,7 +38,7 @@ export function EventList({
 
   if (events.length === 0) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-12 text-center">
+      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 shadow-lg text-center">
         <p className="text-gray-400 mb-2">No events found</p>
         <p className="text-gray-500 text-sm">
           {filter !== 'all'
@@ -56,9 +57,10 @@ export function EventList({
           const goingCount = getAttendeeCount(event, 'GOING');
 
           return (
+            <RainbowStripe>
             <li
               key={event.id}
-              className={`bg-gray-900 border border-gray-800 rounded-lg p-6 transition-colors ${
+              className={`bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 shadow-lg ${
                 onEventClick ? 'cursor-pointer hover:border-gray-700' : ''
               }`}
               onClick={() => onEventClick?.(event)}
@@ -158,9 +160,11 @@ export function EventList({
                 </div>
               </div>
             </li>
+            </RainbowStripe>
           );
         })}
       </ul>
+      
 
       {/* See More Button */}
       {onSeeMore && visibleCount < (filteredEventsLength ?? 0) && (
