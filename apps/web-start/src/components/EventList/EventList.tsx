@@ -2,7 +2,7 @@ import { Clock, MapPin } from 'lucide-react';
 import type { Event } from '../../hooks/useEvents';
 
 interface EventListProps {
-  events: Event[];
+  events: Array<Event>;
   filteredEventsLength?: number;
   visibleCount?: number;
   filter?: 'all' | 'going' | 'maybe';
