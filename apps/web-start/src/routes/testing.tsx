@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, ReactNode } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
 
 const API = "http://localhost:3000";
 const api = (path: string) => `${API}${path}`;
@@ -11,17 +12,32 @@ export const Route = createFileRoute("/testing")({
 export default function TestingPage() {
   const [result, setResult] = useState<any>(null);
 
+  const {
+    getAccessTokenSilently,
+    isAuthenticated,
+    loginWithRedirect,
+  } = useAuth0();
+
+  // Call API with auth token
   const callApi = async (method: string, url: string, body?: any) => {
     try {
+      if (!isAuthenticated) {
+        await loginWithRedirect();
+        return;
+      }
+
+      const token = await getAccessTokenSilently();
+
       const res = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: body ? JSON.stringify(body) : undefined,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       setResult(data);
     } catch (err: any) {
       setResult({ error: err.toString() });
@@ -56,41 +72,56 @@ export default function TestingPage() {
     cursor: "pointer",
   };
 
+  const formToObj = (formData: FormData) => {
+    const obj: any = {};
+    formData.forEach((val, key) => {
+      obj[key] = val === "" ? null : val;
+    });
+    return obj;
+  };
+
   return (
     <div style={{ padding: "24px", maxWidth: "600px", margin: "0 auto" }}>
       <h1>Backend Testing Sandbox</h1>
+
+      {!isAuthenticated && (
+        <button
+          onClick={() => loginWithRedirect()}
+          style={{ ...buttonStyle, marginBottom: "20px" }}
+        >
+          Login with Auth0
+        </button>
+      )}
 
       <Card title="Create Event">
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const f = e.target as any;
+            const fd = new FormData(e.currentTarget);
 
-            callApi("POST", api("/events"), {
-              title: f.title.value,
-              description: f.description.value || null,
-              dateTime: new Date().toISOString(), 
-              location: f.location.value || null,
-              musicTag: f.musicTag.value || null,
-              artistId: f.artistId.value || null,
-              visibility: f.visibility.value,
-              maxAttendees: f.maxAttendees.value
-                ? Number(f.maxAttendees.value)
-                : null,
-            });
+            const body = formToObj(fd);
+            body.dateTime = new Date().toISOString();
+
+            if (body.maxAttendees) body.maxAttendees = Number(body.maxAttendees);
+
+            callApi("POST", api("/events"), body);
           }}
         >
-          <input name="title" placeholder="Title (required)" style={inputStyle} required />
+
+          <input name="title" placeholder="Title" style={inputStyle} required />
           <input name="description" placeholder="Description" style={inputStyle} />
           <input name="location" placeholder="Location" style={inputStyle} />
           <input name="musicTag" placeholder="Music Tag" style={inputStyle} />
           <input name="artistId" placeholder="Artist ID" style={inputStyle} />
+
           <select name="visibility" style={inputStyle}>
             <option value="PRIVATE">PRIVATE</option>
             <option value="PUBLIC">PUBLIC</option>
           </select>
-          <input name="maxAttendees" placeholder="Max attendees (positive int)" style={inputStyle} />
-          <button style={buttonStyle}>Create</button>
+
+          <input name="maxAttendees" placeholder="Max attendees" style={inputStyle} />
+
+          <button style={buttonStyle}>Create Event</button>
         </form>
       </Card>
 
@@ -98,35 +129,40 @@ export default function TestingPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const f = e.target as any;
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
 
-            callApi("PATCH", api(`/events/${f.eventId.value}`), {
-              title: f.title.value || undefined,
-              description: f.description.value || null,
-              dateTime: undefined,
-              location: f.location.value || null,
-              musicTag: f.musicTag.value || null,
-              artistId: f.artistId.value || null,
-              visibility: f.visibility.value || undefined,
-              maxAttendees: f.maxAttendees.value
-                ? Number(f.maxAttendees.value)
-                : null,
-            });
+            if (body.updateDateTime === "on") {
+              body.dateTime = new Date().toISOString();
+            } else {
+              delete body.dateTime;
+            }
+            delete body.updateDateTime;
+
+            callApi("PATCH", api(`/events/${body.eventId}`), body);
           }}
         >
-          <input name="eventId" placeholder="Event ID (required)" style={inputStyle} required />
+          <input name="eventId" placeholder="Event ID" style={inputStyle} required />
           <input name="title" placeholder="Title" style={inputStyle} />
           <input name="description" placeholder="Description" style={inputStyle} />
+
+          <label>
+            <input type="checkbox" name="updateDateTime" /> Update Date to Now
+          </label>
+
           <input name="location" placeholder="Location" style={inputStyle} />
           <input name="musicTag" placeholder="Music Tag" style={inputStyle} />
           <input name="artistId" placeholder="Artist ID" style={inputStyle} />
+
           <select name="visibility" style={inputStyle}>
             <option value="">(no change)</option>
             <option value="PRIVATE">PRIVATE</option>
             <option value="PUBLIC">PUBLIC</option>
           </select>
+
           <input name="maxAttendees" placeholder="Max attendees" style={inputStyle} />
-          <button style={buttonStyle}>Update</button>
+
+          <button style={buttonStyle}>Update Event</button>
         </form>
       </Card>
 
@@ -134,12 +170,13 @@ export default function TestingPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const f = e.target as any;
-            callApi("DELETE", api(`/events/${f.eventId.value}`));
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
+            callApi("DELETE", api(`/events/${body.eventId}`));
           }}
         >
           <input name="eventId" placeholder="Event ID" style={inputStyle} required />
-          <button style={buttonStyle}>Delete</button>
+          <button style={buttonStyle}>Delete Event</button>
         </form>
       </Card>
 
@@ -147,10 +184,11 @@ export default function TestingPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const f = e.target as any;
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
 
-            callApi("POST", api(`/events/${f.eventId.value}/rsvp`), {
-              status: f.status.value,
+            callApi("POST", api(`/events/${body.eventId}/rsvp`), {
+              status: body.status,
             });
           }}
         >
@@ -169,10 +207,11 @@ export default function TestingPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const f = e.target as any;
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
 
-            callApi("POST", api(`/events/${f.eventId.value}/comments`), {
-              content: f.content.value,
+            callApi("POST", api(`/events/${body.eventId}/comments`), {
+              content: body.content,
             });
           }}
         >
@@ -186,12 +225,13 @@ export default function TestingPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const f = e.target as any;
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
 
             callApi(
               "PATCH",
-              api(`/events/${f.eventId.value}/comments/${f.commentId.value}`),
-              { content: f.content.value }
+              api(`/events/${body.eventId}/comments/${body.commentId}`),
+              { content: body.content }
             );
           }}
         >
@@ -206,11 +246,12 @@ export default function TestingPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const f = e.target as any;
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
 
             callApi(
               "DELETE",
-              api(`/events/${f.eventId.value}/comments/${f.commentId.value}`)
+              api(`/events/${body.eventId}/comments/${body.commentId}`)
             );
           }}
         >

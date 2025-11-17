@@ -90,8 +90,16 @@ export interface FileRouteTypes {
     | '/events'
     | '/onboarding'
     | '/profile'
+    | '/testing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/discover' | '/events' | '/onboarding' | '/profile'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/discover'
+    | '/events'
+    | '/onboarding'
+    | '/profile'
+    | '/testing'
   id:
     | '__root__'
     | '/'
@@ -100,6 +108,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/onboarding'
     | '/profile'
+    | '/testing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
