@@ -1,41 +1,48 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { LinksService } from './links.service';
-import type { CreateLinkDto, UpdateLinkDto } from '@repo/api';
+import { CreateLinkDto, UpdateLinkDto } from '@repo/api';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtUser } from '../auth/jwt.strategy';
+import { UsersService } from '../users/users.service';
+import { ZodValidationPipe } from '../pipes/zod-validation.pipe';
 
 @Controller('links')
+@UseGuards(JwtAuthGuard)
 export class LinksController {
-  constructor(private readonly linksService: LinksService) {}
+  constructor(
+    private readonly linksService: LinksService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post()
-  create(@Body() createLinkDto: CreateLinkDto) {
-    return this.linksService.create(createLinkDto);
+  async create(
+    @CurrentUser() jwtUser: JwtUser,
+    @Body(new ZodValidationPipe(CreateLinkDto)) createLinkDto: CreateLinkDto,
+  ) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    return this.linksService.create(user.id, createLinkDto);
   }
 
   @Get()
-  findAll() {
-    return this.linksService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.linksService.findOne(+id);
+  async findAll(@CurrentUser() jwtUser: JwtUser) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    return this.linksService.findAll(user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLinkDto: UpdateLinkDto) {
-    return this.linksService.update(+id, updateLinkDto);
+  async update(
+    @CurrentUser() jwtUser: JwtUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateLinkDto)) updateLinkDto: UpdateLinkDto,
+  ) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    return this.linksService.update(id, user.id, updateLinkDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.linksService.remove(+id);
+  async remove(@CurrentUser() jwtUser: JwtUser, @Param('id') id: string) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    return this.linksService.remove(id, user.id);
   }
 }

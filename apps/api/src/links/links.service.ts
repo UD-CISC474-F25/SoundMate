@@ -1,55 +1,67 @@
 import { Injectable } from '@nestjs/common';
-import type { CreateLinkDto, Link, UpdateLinkDto } from '@repo/api';
+import { PrismaService } from '../prisma.service';
+import { CreateLinkDto, UpdateLinkDto } from '@repo/api';
 
 @Injectable()
 export class LinksService {
-  private readonly _links: Link[] = [
-    {
-      id: 0,
-      title: 'Docs',
-      url: 'https://turborepo.com/docs',
-      description:
-        'Find in-depth information about Turborepo features and API.',
-    },
-    {
-      id: 1,
-      title: 'Learn',
-      url: 'https://turborepo.com/docs/handbook',
-      description: 'Learn more about monorepos with our handbook.',
-    },
-    {
-      id: 2,
-      title: 'Templates',
-      url: 'https://turborepo.com/docs/getting-started/from-example',
-      description:
-        'Choose from over 15 examples and deploy with a single click.',
-    },
-    {
-      id: 3,
-      title: 'Deploy',
-      url: 'https://vercel.com/new',
-      description:
-        'Instantly deploy your Turborepo to a shareable URL with Vercel.',
-    },
-  ];
+  constructor(private prisma: PrismaService) {}
 
-  create(createLinkDto: CreateLinkDto) {
-    return `This action adds a new link ${createLinkDto}`;
+  async create(userId: string, createLinkDto: CreateLinkDto) {
+    if (createLinkDto.order === undefined) {
+      const maxOrder = await this.prisma.link.findFirst({
+        where: { userId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+      createLinkDto.order = maxOrder ? maxOrder.order + 1 : 0;
+    }
+
+    return this.prisma.link.create({
+      data: {
+        userId,
+        title: createLinkDto.title,
+        url: createLinkDto.url,
+        order: createLinkDto.order,
+      },
+    });
   }
 
-  findAll() {
-    return this._links;
+  async findAll(userId: string) {
+    return this.prisma.link.findMany({
+      where: { userId },
+      orderBy: { order: 'asc' },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} link`;
+  async findOne(id: string, userId: string) {
+    return this.prisma.link.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
   }
 
-  update(id: number, updateLinkDto: UpdateLinkDto) {
-    return `This action updates a #${id} link ${updateLinkDto}`;
+  async update(id: string, userId: string, updateLinkDto: UpdateLinkDto) {
+    const link = await this.findOne(id, userId);
+    if (!link) {
+      throw new Error('Link not found or you do not have permission');
+    }
+
+    return this.prisma.link.update({
+      where: { id },
+      data: updateLinkDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} link`;
+  async remove(id: string, userId: string) {
+    const link = await this.findOne(id, userId);
+    if (!link) {
+      throw new Error('Link not found or you do not have permission');
+    }
+
+    return this.prisma.link.delete({
+      where: { id },
+    });
   }
 }
