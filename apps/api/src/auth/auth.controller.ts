@@ -42,12 +42,7 @@ export class AuthController {
     @CurrentUser() jwtUser: JwtUser,
     @Body(new ZodValidationPipe(CompleteOnboardingIn)) body: { email: string; username: string; displayName: string; bio?: string | null },
   ) {
-    console.log('Onboarding request body:', JSON.stringify(body, null, 2));
-    console.log('JWT User:', jwtUser);
-
-    // First find the user by auth0Id to get their userId
     const existingUser = await this.authService.findByAuth0Id(jwtUser.sub);
-    console.log('Existing user:', existingUser);
 
     if (!existingUser) {
       throw new Error('User not found');
@@ -70,8 +65,6 @@ export class AuthController {
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     const redirectUri = `${process.env.BACKEND_URL}/auth/spotify/callback`;
     const scope = 'user-read-email user-top-read user-read-private';
-
-    // Store user's auth0Id in state to identify them after callback
     const state = Buffer.from(JSON.stringify({ auth0Id: jwtUser.sub })).toString('base64');
 
     const authUrl = `https://accounts.spotify.com/authorize?` +
@@ -90,8 +83,6 @@ export class AuthController {
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     const redirectUri = `${process.env.BACKEND_URL}/auth/spotify/callback`;
     const scope = 'user-read-email user-top-read user-read-private';
-
-    // Store user's auth0Id in state to identify them after callback
     const state = Buffer.from(JSON.stringify({ auth0Id: jwtUser.sub })).toString('base64');
 
     const authUrl = `https://accounts.spotify.com/authorize?` +
@@ -111,10 +102,8 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
-      // Decode state to get user's auth0Id
       const { auth0Id } = JSON.parse(Buffer.from(state, 'base64').toString());
 
-      // Exchange code for tokens
       const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: {
@@ -129,11 +118,8 @@ export class AuthController {
       });
 
       const tokens = await tokenResponse.json();
-
-      // Get Spotify profile
       const profile = await this.getProfile(tokens.access_token);
 
-      // Find user and store tokens
       const user = await this.prisma.user.findUnique({
         where: { auth0Id },
       });
@@ -142,7 +128,6 @@ export class AuthController {
         throw new Error('User not found');
       }
 
-      // Update user with Spotify info
       await this.prisma.user.update({
         where: { id: user.id },
         data: {
@@ -152,7 +137,6 @@ export class AuthController {
         },
       });
 
-      // Store or update Spotify tokens
       await this.prisma.userSpotifyStats.upsert({
         where: { userId: user.id },
         create: {
@@ -168,38 +152,21 @@ export class AuthController {
         },
       });
 
-      // Automatically sync top artists for all time ranges
       try {
         await Promise.all([
-          this.spotifyService.syncTopArtists(
-            user.id,
-            tokens.access_token,
-            tokens.refresh_token,
-            'SHORT_TERM',
-          ),
-          this.spotifyService.syncTopArtists(
-            user.id,
-            tokens.access_token,
-            tokens.refresh_token,
-            'MEDIUM_TERM',
-          ),
-          this.spotifyService.syncTopArtists(
-            user.id,
-            tokens.access_token,
-            tokens.refresh_token,
-            'LONG_TERM',
-          ),
+          this.spotifyService.syncTopArtists(user.id, 'SHORT_TERM'),
+          this.spotifyService.syncTopArtists(user.id, 'MEDIUM_TERM'),
+          this.spotifyService.syncTopArtists(user.id, 'LONG_TERM'),
         ]);
         console.log('Successfully synced all top artists for user:', user.id);
       } catch (syncError) {
         console.error('Failed to sync top artists:', syncError);
       }
 
-      // Redirect back to profile page
-      res.redirect(`${process.env.FRONTEND_URL}/profile?spotify=connected`);
+      res.redirect(`${process.env.FRONTEND_URL}/discover?spotify=connected`);
     } catch (error) {
       console.error('Spotify callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/profile?spotify=error`);
+      res.redirect(`${process.env.FRONTEND_URL}/discover?spotify=error`);
     }
   }
 
