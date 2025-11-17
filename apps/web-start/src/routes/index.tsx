@@ -9,11 +9,12 @@ export const Route = createFileRoute('/')({
 function HomePage() {
   const videos = [
     '/videos/14994578-uhd_3840_2160_25fps.mp4',
-    '/videos/19149712-uhd_3840_2160_60fps.mp4',
     '/videos/19807699-uhd_3840_2024_25fps.mp4',
+    '/videos/2034248-uhd_3840_2160_24fps.mp4',
+    '/videos/2040063-hd_1920_1080_24fps.mp4',
+    '/videos/3217373-hd_1920_1080_25fps.mp4',
+    '/videos/4231734-uhd_3840_2160_24fps.mp4',
     '/videos/5788982-hd_1920_1080_25fps.mp4',
-    '/videos/7064870-uhd_3840_2160_30fps.mp4',
-    '/videos/9733929-uhd_4096_2160_30fps.mp4',
   ];
 
   return (
