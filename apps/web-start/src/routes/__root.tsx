@@ -38,6 +38,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         rel: 'stylesheet',
         href: appCss,
       },
+      {
+        rel: 'stylesheet',
+        href: 'https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap',
+      },
     ],
   }),
 

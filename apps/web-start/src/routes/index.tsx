@@ -1,41 +1,56 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { AuroraRay, FadeIn, TypewriterText } from '../components/Animations';
+import { VideoCarousel } from '../components/VideoCarousel/VideoCarousel';
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
 function HomePage() {
+  const videos = [
+    '/videos/14994578-uhd_3840_2160_25fps.mp4',
+    '/videos/19149712-uhd_3840_2160_60fps.mp4',
+    '/videos/19807699-uhd_3840_2024_25fps.mp4',
+    '/videos/5788982-hd_1920_1080_25fps.mp4',
+    '/videos/7064870-uhd_3840_2160_30fps.mp4',
+    '/videos/9733929-uhd_4096_2160_30fps.mp4',
+  ];
+
   return (
     <div className="min-h-screen bg-black">
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col items-center">
-          <div className="w-full md:w-[80%] space-y-8">
-            <FadeIn>
-              <h1 className="text-5xl md:text-6xl font-bold text-white text-center">
-                <TypewriterText text="Find Your Music Community" />
-              </h1>
-            </FadeIn>
+      <section className="relative h-screen w-full overflow-hidden">
+        <VideoCarousel videos={videos} className="h-full" />
 
-            <FadeIn delay={1}>
-              <p className="text-xl text-gray-300 leading-relaxed text-center">
-                <TypewriterText
-                  text="SoundMate connects college students through their shared love of music. Discover friends who vibe with your playlist, find concert buddies, and create unforgettable music experiences together."
-                  delay={800}
-                />
-              </p>
-            </FadeIn>
+        <div className="absolute inset-0 flex items-center justify-center px-6 pt-20">
+          <div className="max-w-7xl mx-auto flex flex-col items-center">
+            <div className="w-full md:w-[80%] flex flex-col items-center gap-6">
+              <FadeIn>
+                <div className="flex justify-center">
+                  <img
+                    src="/assets/WhiteLogo.svg"
+                    alt="SoundMate Logo"
+                    className="w-80 h-80 md:w-96 md:h-96 object-contain drop-shadow-2xl"
+                  />
+                </div>
+              </FadeIn>
 
-            <FadeIn delay={2}>
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img
-                  src="/home_page_placeholder.jpeg"
-                  alt="People enjoying music together"
-                  className="w-full h-[500px] object-cover"
-                />
-                <div className="absolute inset-0 bg-linear-to-t from-black/30 to-transparent"></div>
+              <div className="flex flex-col items-center gap-3">
+                <FadeIn delay={1}>
+                  <h1 className="text-4xl md:text-5xl font-bold text-white text-center drop-shadow-lg">
+                    Find Your Music Community
+                  </h1>
+                </FadeIn>
+
+                <FadeIn delay={2}>
+                  <p className="text-base md:text-lg text-gray-200 leading-relaxed text-center drop-shadow-lg">
+                  <TypewriterText
+                    text="Bringing IRL connections to your URL. Swag out twin, and stop sending that Spotify Blend to your talking stage. Instead, you can use our app, it's way cooler <3."
+                    delay={1500}
+                  />
+                </p>
+                </FadeIn>
               </div>
-            </FadeIn>
+            </div>
           </div>
         </div>
       </section>
@@ -56,7 +71,7 @@ function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             <FadeIn delay={1}>
-              <AuroraRay className="h-full">
+              <AuroraRay variant="warm" intensity="subtle" className="h-full">
                 <div className="bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 h-full">
                   <div className="w-14 h-14 mb-6 rounded-full bg-white flex items-center justify-center">
                     <span className="text-2xl font-bold text-black">1</span>
@@ -72,7 +87,7 @@ function HomePage() {
             </FadeIn>
 
             <FadeIn delay={2}>
-              <AuroraRay className="h-full">
+              <AuroraRay variant="warm" intensity="subtle" className="h-full">
                 <div className="bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 h-full">
                   <div className="w-14 h-14 mb-6 rounded-full bg-white flex items-center justify-center">
                     <span className="text-2xl font-bold text-black">2</span>
@@ -88,7 +103,7 @@ function HomePage() {
             </FadeIn>
 
             <FadeIn delay={3}>
-              <AuroraRay className="h-full">
+              <AuroraRay variant="warm" intensity="subtle" className="h-full">
                 <div className="bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 h-full">
                   <div className="w-14 h-14 mb-6 rounded-full bg-white flex items-center justify-center">
                     <span className="text-2xl font-bold text-black">3</span>
@@ -116,14 +131,17 @@ function HomePage() {
 
           <FadeIn delay={1}>
             <p className="text-xl text-gray-400 mb-8">
-              <TypewriterText text="Join our newsletter for product updates from 3 college students building the soundtrack to your social life" delay={4600} />
+              <TypewriterText text="We are a group of 3 developers! Connect with us and give us some feedbacks!" delay={4600} />
             </p>
           </FadeIn>
 
           <FadeIn delay={2}>
-            <button className="px-8 py-4 text-lg font-semibold bg-white text-black rounded-full transition-all transform hover:scale-105 shadow-lg">
-              <TypewriterText text="Join the newsletter" delay={5200} />
-            </button>
+            <a
+              href="mailto:dustintr@udel.edu,vniko@udel.edu,gscoz@udel.edu?subject=Newsletter Signup&body=Just wanted to say hi!"
+              className="px-8 py-4 text-lg font-semibold bg-white text-black rounded-full transition-all transform hover:scale-105 shadow-lg cursor-pointer inline-block"
+            >
+              <TypewriterText text="Say hi to us!" delay={5200} />
+            </a>
           </FadeIn>
         </div>
       </section>
