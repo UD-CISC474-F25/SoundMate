@@ -52,7 +52,7 @@ export class SpotifyService {
     return tokens.access_token;
   }
 
-  private async getValidAccessToken(userId: string): Promise<string> {
+  async getValidAccessToken(userId: string): Promise<string> {
     const userStats = await this.prisma.userSpotifyStats.findUnique({
       where: { userId },
       select: {
@@ -77,29 +77,35 @@ export class SpotifyService {
     return userStats.accessToken;
   }
 
-  async syncTopArtists(
-    userId: string,
-    timeRange: any = 'LONG_TERM',
-  ) {
-    const validToken = await this.getValidAccessToken(userId);
+  async syncTopArtists(userId: string, timeRange: any = 'LONG_TERM') {
+    const accessToken = await this.getValidAccessToken(userId);
 
-    const topArtists = await this.fetchTopArtists(validToken, timeRange);
+    const normalized: 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM' =
+      timeRange === 'SHORT_TERM' ||
+      timeRange === 'MEDIUM_TERM' ||
+      timeRange === 'LONG_TERM'
+        ? timeRange
+        : 'LONG_TERM';
 
-    const artistPromises = topArtists.items.map(async (spotifyArtist: any, index: number) => {
-      const artist = await this.prisma.artist.upsert({
-        where: { spotifyArtistId: spotifyArtist.id },
+    const topArtists = await this.fetchTopArtists(accessToken, normalized);
+
+    for (let index = 0; index < topArtists.items.length; index++) {
+      const artist = topArtists.items[index];
+
+      const savedArtist = await this.prisma.artist.upsert({
+        where: { spotifyArtistId: artist.id },
         update: {
-          name: spotifyArtist.name,
-          genres: spotifyArtist.genres,
-          imageUrl: spotifyArtist.images?.[0]?.url ?? null,
-          spotifyUri: spotifyArtist.uri,
+          name: artist.name,
+          genres: artist.genres,
+          imageUrl: artist.images?.[0]?.url ?? null,
+          spotifyUri: artist.uri,
         },
         create: {
-          spotifyArtistId: spotifyArtist.id,
-          name: spotifyArtist.name,
-          genres: spotifyArtist.genres,
-          imageUrl: spotifyArtist.images?.[0]?.url ?? null,
-          spotifyUri: spotifyArtist.uri,
+          spotifyArtistId: artist.id,
+          name: artist.name,
+          genres: artist.genres,
+          imageUrl: artist.images?.[0]?.url ?? null,
+          spotifyUri: artist.uri,
         },
       });
 
@@ -107,49 +113,115 @@ export class SpotifyService {
         where: {
           userId_artistId_timeRange: {
             userId,
-            artistId: artist.id,
+            artistId: savedArtist.id,
+            timeRange: normalized,
+          },
+        },
+        update: { rank: index + 1 },
+        create: {
+          userId,
+          artistId: savedArtist.id,
+          rank: index + 1,
+          timeRange: normalized,
+        },
+      });
+    }
+
+    return { success: true };
+  }
+
+  async syncTopSongs(userId: string, timeRange: any = 'LONG_TERM') {
+    const accessToken = await this.getValidAccessToken(userId);
+
+    const topTracks = await this.fetchTopSongs(accessToken, timeRange);
+
+    for (let index = 0; index < topTracks.items.length; index++) {
+      const spotifyTrack = topTracks.items[index];
+
+      const song = await this.prisma.song.upsert({
+        where: { spotifySongId: spotifyTrack.id },
+        update: {
+          name: spotifyTrack.name,
+          artists: spotifyTrack.artists.map((a: any) => a.name),
+          albumImageUrl: spotifyTrack.album?.images?.[0]?.url ?? null,
+          spotifyUri: spotifyTrack.uri,
+        },
+        create: {
+          spotifySongId: spotifyTrack.id,
+          name: spotifyTrack.name,
+          artists: spotifyTrack.artists.map((a: any) => a.name),
+          albumImageUrl: spotifyTrack.album?.images?.[0]?.url ?? null,
+          spotifyUri: spotifyTrack.uri,
+        },
+      });
+
+      await this.prisma.userTopSong.upsert({
+        where: {
+          userId_songId_timeRange: {
+            userId,
+            songId: song.id,
             timeRange,
           },
         },
-        update: {
-          rank: index + 1,
-        },
+        update: { rank: index + 1 },
         create: {
           userId,
-          artistId: artist.id,
+          songId: song.id,
           rank: index + 1,
           timeRange,
         },
       });
+    }
 
-      return artist;
-    });
-
-    const artists = await Promise.all(artistPromises);
-
+    const lastSyncedAt = new Date();
     await this.prisma.userSpotifyStats.update({
       where: { userId },
-      data: {
-        lastSyncedAt: new Date(),
-      },
+      data: { lastSyncedAt },
     });
 
     return {
-      syncedArtists: artists.length,
-      lastSyncedAt: new Date(),
-      topArtists: artists.map((artist, index) => ({
-        id: artist.id,
-        spotifyArtistId: artist.spotifyArtistId,
-        name: artist.name,
-        genres: artist.genres,
-        imageUrl: artist.imageUrl,
-        rank: index + 1,
-        timeRange,
-      })),
+      syncedSongs: topTracks.items.length,
+      lastSyncedAt,
     };
   }
 
-  private async fetchTopArtists(accessToken: string, timeRange: any) {
+  async syncTopGenres(userId: string, timeRange: any = 'LONG_TERM') {
+    const accessToken = await this.getValidAccessToken(userId);
+
+    const normalized: 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM' =
+      timeRange === 'SHORT_TERM' ||
+      timeRange === 'MEDIUM_TERM' ||
+      timeRange === 'LONG_TERM'
+        ? timeRange
+        : 'LONG_TERM';
+
+    const genres = await this.fetchTopGenres(accessToken, normalized);
+
+    for (let index = 0; index < genres.length; index++) {
+      const genre = genres[index];
+
+      await this.prisma.userTopGenre.upsert({
+        where: {
+          userId_genre_timeRange: {
+            userId,
+            genre,
+            timeRange: normalized,  
+          },
+        },
+        update: { rank: index + 1 },
+        create: {
+          userId,
+          genre,
+          rank: index + 1,
+          timeRange: normalized,
+        },
+      });
+    }
+
+    return { success: true };
+  }
+
+  async fetchTopArtists(accessToken: string, timeRange: any) {
     const timeRangeMap = {
       SHORT_TERM: 'short_term',
       MEDIUM_TERM: 'medium_term',
@@ -166,11 +238,108 @@ export class SpotifyService {
     );
 
     if (!response.ok) {
+      const body = await response.text();          
+      console.error("Spotify Top Artists Error:", {
+      status: response.status,
+      body,
+      tokenStart: accessToken?.slice(0, 10),
+    });
       throw new BadRequestException('Failed to fetch top artists from Spotify');
     }
 
     return response.json();
   }
+
+  async fetchTopSongs(accessToken: string, timeRange: any) {
+    const timeRangeMap = {
+      SHORT_TERM: 'short_term',
+      MEDIUM_TERM: 'medium_term',
+      LONG_TERM: 'long_term',
+    };
+
+    const response = await fetch(
+      `https://api.spotify.com/v1/me/top/tracks?time_range=${timeRangeMap[timeRange]}&limit=20`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new BadRequestException('Failed to fetch top songs from Spotify');
+    }
+
+    return response.json();
+  }
+
+  async fetchTopGenres(accessToken: string, timeRange: any) {
+    const timeRangeMap = {
+      SHORT_TERM: 'short_term',
+      MEDIUM_TERM: 'medium_term',
+      LONG_TERM: 'long_term',
+    };
+
+    const response = await fetch(
+      `https://api.spotify.com/v1/me/top/artists?time_range=${timeRangeMap[timeRange]}&limit=20`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new BadRequestException('Failed to fetch genres from Spotify');
+    }
+
+    const data = await response.json();
+
+    const genreCounts: Record<string, number> = {};
+
+    for (const artist of data.items) {
+      for (const genre of artist.genres ?? []) {
+        genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+      }
+    }
+
+    const sortedGenres = Object.entries(genreCounts)
+      .sort((a, b) => b[1] - a[1])  
+      .map(([genre]) => genre);
+
+    return sortedGenres;
+  }
+
+  async getTopArtistsFromDB(userId: string, timeRange: any = 'LONG_TERM', limit: number) {
+    return this.prisma.userTopArtist.findMany({
+      where: { userId, timeRange },
+      orderBy: { rank: 'asc' }, 
+      take: limit,
+      include: {
+        artist: true, 
+      },
+    });
+  }
+
+  async getTopSongsFromDB(userId: string, timeRange: any = 'LONG_TERM', limit: number) {
+    return this.prisma.userTopSong.findMany({
+      where: { userId, timeRange },
+      orderBy: { rank: 'asc' },
+      take: limit,
+      include: {
+        song: true,
+      },
+    });
+  }
+
+  async getTopGenresFromDB(userId: string, timeRange: any, limit: number) {
+    return this.prisma.userTopGenre.findMany({
+      where: { userId, timeRange },
+      orderBy: { rank: 'asc' },
+      take: limit,
+    });
+  }
+
 
   async getProfile(userId: string) {
     const validToken = await this.getValidAccessToken(userId);
