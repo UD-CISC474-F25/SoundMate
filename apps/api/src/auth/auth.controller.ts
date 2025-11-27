@@ -152,16 +152,30 @@ export class AuthController {
         },
       });
 
+      // Start syncing top artists, songs, and genres in the background
       try {
-        await Promise.all([
-          this.spotifyService.syncTopArtists(user.id, 'SHORT_TERM'),
-          this.spotifyService.syncTopArtists(user.id, 'MEDIUM_TERM'),
-          this.spotifyService.syncTopArtists(user.id, 'LONG_TERM'),
-        ]);
+        const tasks = [
+          () => this.spotifyService.syncTopArtists(user.id, 'SHORT_TERM'),
+          () => this.spotifyService.syncTopArtists(user.id, 'MEDIUM_TERM'),
+          () => this.spotifyService.syncTopArtists(user.id, 'LONG_TERM'),
+          () => this.spotifyService.syncTopSongs(user.id, 'SHORT_TERM'),
+          () => this.spotifyService.syncTopSongs(user.id, 'MEDIUM_TERM'),
+          () => this.spotifyService.syncTopSongs(user.id, 'LONG_TERM'),
+          () => this.spotifyService.syncTopGenres(user.id, 'SHORT_TERM'),
+          () => this.spotifyService.syncTopGenres(user.id, 'MEDIUM_TERM'),
+          () => this.spotifyService.syncTopGenres(user.id, 'LONG_TERM'),
+        ];
+
+        for (const task of tasks) {
+          await task();
+        }
+
         console.log('Successfully synced all top artists for user:', user.id);
+
       } catch (syncError) {
         console.error('Failed to sync top artists:', syncError);
       }
+
 
       res.redirect(`${process.env.FRONTEND_URL}/discover?spotify=connected`);
     } catch (error) {
