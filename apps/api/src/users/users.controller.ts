@@ -1,4 +1,6 @@
-import { Controller, Delete, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { 
+  Controller, Delete, Get, Patch, Param, Body, Query, UseGuards 
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -15,7 +17,6 @@ export class UsersController {
   async getMe(@CurrentUser() jwtUser: JwtUser) {
     let user = await this.usersService.findByAuth0Id(jwtUser.sub);
 
-    // Auto-create user on first access if they don't exist
     if (!user) {
       user = await this.usersService.createUserFromAuth0(jwtUser.sub);
     }
@@ -25,21 +26,28 @@ export class UsersController {
 
   @Get('me/profile')
   @UseGuards(JwtAuthGuard)
-  async getMeProfile(@CurrentUser() jwtUser: JwtUser, @Query('timeRange') timeRange?: string) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+  async getMeProfile(
+    @CurrentUser() jwtUser: JwtUser,
+    @Query('timeRange') timeRange: string = 'SHORT_TERM',
+  ) {
+    let user = await this.usersService.findByAuth0Id(jwtUser.sub);
+
     if (!user) {
-      // Auto-create if doesn't exist
-      const newUser = await this.usersService.createUserFromAuth0(jwtUser.sub);
-      return this.usersService.findOneWithTopArtists(newUser.id, timeRange as any);
+      user = await this.usersService.createUserFromAuth0(jwtUser.sub);
     }
-    return this.usersService.findOneWithTopArtists(user.id, timeRange as any);
+
+    return this.usersService.findOneWithTopStats(user.id, timeRange);
   }
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
   async updateMe(
     @CurrentUser() jwtUser: JwtUser,
-    @Body(new ZodValidationPipe(UserUpdateIn)) body: { displayName?: string; bio?: string | null; showSpotifyProfile?: boolean },
+    @Body(new ZodValidationPipe(UserUpdateIn)) body: {
+      displayName?: string;
+      bio?: string | null;
+      showSpotifyProfile?: boolean;
+    }
   ) {
     const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.usersService.updateCurrentUser(user.id, body);
@@ -49,9 +57,8 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async deleteMe(@CurrentUser() jwtUser: JwtUser) {
     const user = await this.usersService.findByAuth0Id(jwtUser.sub);
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new Error('User not found');
+
     return this.usersService.deleteUser(user.id);
   }
 
@@ -66,7 +73,10 @@ export class UsersController {
   }
 
   @Get(':id/profile')
-  findProfile(@Param('id') id: string, @Query('timeRange') timeRange?: string) {
-    return this.usersService.findOneWithTopArtists(id, timeRange as any);
+  findProfile(
+    @Param('id') id: string,
+    @Query('timeRange') timeRange: string = 'SHORT_TERM',
+  ) {
+    return this.usersService.findOneWithTopStats(id, timeRange);
   }
 }

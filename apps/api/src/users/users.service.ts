@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { SpotifyService } from '../spotify/spotify.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private spotifyService: SpotifyService) {}
 
   async findAll() {
     return this.prisma.user.findMany({
@@ -42,49 +43,68 @@ export class UsersService {
     return user;
   }
 
-  async findOneWithTopArtists(id: string, timeRange?: any) {
+  async findOneWithTopStats(userId: string, timeRange: any) {
     const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        profilePhotoUrl: true,
-        bio: true,
-        spotifyProfileUrl: true,
-        showSpotifyProfile: true,
-        createdAt: true,
+      where: { id: userId },
+      include: {
         topArtists: {
-          where: timeRange ? { timeRange } : {},
-          include: {
-            artist: true,
-          },
-          orderBy: {
-            rank: 'asc',
-          },
-          take: 20,
+          where: { timeRange },
+          include: { artist: true },
+          orderBy: { rank: 'asc' },
         },
+        topSongs: {
+          where: { timeRange },
+          include: { song: true },
+          orderBy: { rank: 'asc' },
+        },
+        spotifyStats: true,
       },
     });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('User not found');
+
+    if (!user.spotifyStats) {
+      return {
+        ...user,
+        topArtists: [],
+        topSongs: [],
+        topGenres: [],
+      };
     }
 
-    const topArtists = user.topArtists.map((ta) => ({
-      id: ta.artist.id,
-      spotifyArtistId: ta.artist.spotifyArtistId,
-      name: ta.artist.name,
-      genres: ta.artist.genres,
-      imageUrl: ta.artist.imageUrl,
-      spotifyUri: ta.artist.spotifyUri,
-      rank: ta.rank,
-      timeRange: ta.timeRange,
+    const topArtists = user.topArtists.map((uta) => ({
+      id: uta.artist.id,
+      spotifyArtistId: uta.artist.spotifyArtistId,
+      name: uta.artist.name,
+      genres: uta.artist.genres,
+      imageUrl: uta.artist.imageUrl,
+      spotifyUri: uta.artist.spotifyUri,
+      rank: uta.rank,
+      timeRange: uta.timeRange,
     }));
+
+    const topSongs = user.topSongs.map((uts) => ({
+      id: uts.song.id,
+      spotifySongId: uts.song.spotifySongId,
+      name: uts.song.name,
+      artists: uts.song.artists,
+      albumImage: uts.song.albumImageUrl,
+      spotifyUri: uts.song.spotifyUri,
+      rank: uts.rank,
+      timeRange: uts.timeRange,
+    }));
+
+    const topGenres = await this.spotifyService.getTopGenresFromDB(
+      userId,
+      timeRange,
+      8
+    );
 
     return {
       ...user,
       topArtists,
+      topSongs,
+      topGenres: topGenres.map((g) => g.genre), 
     };
   }
 

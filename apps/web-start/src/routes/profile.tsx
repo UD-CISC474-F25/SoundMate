@@ -7,7 +7,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner/LoadingSpinner';
 import { FilterTabs } from '../components/FilterTabs/FilterTabs';
 import { ProfileSuccessMessage } from '../components/ProfileSuccessMessage/ProfileSuccessMessage';
 import { ProfileErrorState } from '../components/ProfileErrorState/ProfileErrorState';
-import { ArtistCard } from '../components/ArtistCard/ArtistCard';
+import { ProfileCardSwitcher } from '../components/ProfileCardSwitcher/ProfileCardSwitcher';
 import { EventList } from '../components/EventList/EventList';
 import { Modal } from '../components/Modal/Modal';
 import { FormInput } from '../components/FormInput/FormInput';
@@ -19,6 +19,7 @@ import { useAccountDelete } from '../hooks/useAccountDelete';
 import { useProfileLinks } from '../hooks/useProfileLinks';
 import { LinkForm } from '../components/LinkForm/LinkForm';
 import { APP_CONFIG } from '../constants/app';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const Route = createFileRoute('/profile')({
   component: ProfilePage,
@@ -45,9 +46,20 @@ type UserProfile = {
     rank: number;
     timeRange: string;
   }>;
+  topSongs: Array<{
+    id: string;
+    name: string;
+    albumImage: string;
+    artists: string[];
+    spotifyUri?: string;
+  }>;
+  topGenres: string[];
+
 };
 
 type TimeRange = 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
+
+
 
 function ProfilePage() {
   const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
@@ -73,10 +85,26 @@ function ProfilePage() {
     }
   }, []);
 
+  const queryClient = useQueryClient();
+
+useEffect(() => {
+  const ranges = ['SHORT_TERM', 'MEDIUM_TERM', 'LONG_TERM'];
+
+  ranges.forEach((range) => {
+    queryClient.prefetchQuery({
+      queryKey: ['users', 'me', 'profile', range],
+      queryFn: () => request(`/users/me/profile?timeRange=${range}`),
+    });
+  });
+}, [queryClient, request]);
+
+
   const { data: user, isLoading, isError } = useApiQuery<UserProfile>(
     ['users', 'me', 'profile', selectedTimeRange],
     `/users/me/profile?timeRange=${selectedTimeRange}`
   );
+  console.log("PROFILE RESPONSE:", user);
+
 
   const profileEdit = useProfileEdit(user, selectedTimeRange);
   const accountDelete = useAccountDelete();
@@ -116,7 +144,7 @@ function ProfilePage() {
     { id: 3, title: 'Jazz at Rodney Square', date: 'Nov 28, 2025', location: 'Wilmington, DE' },
   ];
 
-  if (authLoading || !isAuthenticated || isLoading) {
+  if ((authLoading || !isAuthenticated) || (!user && isLoading)) {
     return (
       <div className="min-h-screen bg-black pt-28 px-6">
         <LoadingSpinner fullScreen message="Loading profile..." />
@@ -198,43 +226,33 @@ function ProfilePage() {
 
         <AuroraRay className="mb-6">
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Top Artists</h2>
 
-          <div className="mb-6">
-            <FilterTabs
-              tabs={[
-                { value: 'SHORT_TERM', label: APP_CONFIG.TIME_RANGES.SHORT_TERM.label },
-                { value: 'MEDIUM_TERM', label: APP_CONFIG.TIME_RANGES.MEDIUM_TERM.label },
-                { value: 'LONG_TERM', label: APP_CONFIG.TIME_RANGES.LONG_TERM.label },
-              ]}
-              activeTab={selectedTimeRange}
-              onChange={(value) => setSelectedTimeRange(value as TimeRange)}
-              className="mb-3"
-            />
-            <p className="text-sm text-gray-400">
-              {APP_CONFIG.TIME_RANGES[selectedTimeRange].description}
-            </p>
-          </div>
+            <div className="mb-6">
+              <div className="mb-3">
+                <FilterTabs
+                  tabs={[
+                    { value: 'SHORT_TERM', label: APP_CONFIG.TIME_RANGES.SHORT_TERM.label },
+                    { value: 'MEDIUM_TERM', label: APP_CONFIG.TIME_RANGES.MEDIUM_TERM.label },
+                    { value: 'LONG_TERM', label: APP_CONFIG.TIME_RANGES.LONG_TERM.label },
+                  ]}
+                  activeTab={selectedTimeRange}
+                  onChange={(value) => setSelectedTimeRange(value as TimeRange)}
+                />
+              </div>
 
-          {user.topArtists.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {user.topArtists.slice(0, APP_CONFIG.TOP_ARTISTS.DISPLAY_COUNT).map((artist) => (
-                <ArtistCard key={artist.id} artist={artist} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-400 mb-4">
-                No top artists synced yet. Connect your Spotify account to see your favorite artists!
+              <p className="text-sm text-gray-400">
+                {APP_CONFIG.TIME_RANGES[selectedTimeRange].description}
               </p>
-              <button
-                onClick={handleConnectSpotify}
-                className="inline-block px-6 py-3 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700 transition-all shadow-lg cursor-pointer"
-              >
-                Connect Spotify
-              </button>
             </div>
-          )}
+
+            {user.topArtists && user.topSongs && user.topGenres && (
+              <ProfileCardSwitcher
+                topArtists={user.topArtists}
+                topSongs={user.topSongs}
+                topGenres={user.topGenres}
+              />
+            )}
+
           </div>
         </AuroraRay>
 

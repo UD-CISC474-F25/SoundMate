@@ -1,101 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/client"
-}
-
 model User {
-  id                   String    @id @default(cuid())
-  auth0Id              String    @unique @map("auth0_id")
-  email                String?   @unique
-  spotifyId            String?   @unique @map("spotify_id")
-  username             String?   @unique
-  displayName          String?   @map("display_name")
-  profilePhotoUrl      String?   @map("profile_photo_url")
-  bio                  String?
-  spotifyProfileUrl    String?   @map("spotify_profile_url")
-  showSpotifyProfile   Boolean   @default(true) @map("show_spotify_profile")
-  isOnboarded          Boolean   @default(false) @map("is_onboarded")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-  lastLogin            DateTime? @map("last_login")
-
-  spotifyStats         UserSpotifyStats?
-  topArtists           UserTopArtist[]
-  sentConnections      Connection[]       @relation("ConnectionRequester")
-  receivedConnections  Connection[]       @relation("ConnectionReceiver")
-  createdEvents        Event[]            @relation("EventCreator")
-  eventAttendances     EventAttendee[]
-  eventComments        EventComment[]
-  links                Link[]
+  id                  String            @id @default(cuid())
+  auth0Id             String            @unique @map("auth0_id")
+  email               String?           @unique
+  spotifyId           String?           @unique @map("spotify_id")
+  username            String?           @unique
+  displayName         String?           @map("display_name")
+  profilePhotoUrl     String?           @map("profile_photo_url")
+  bio                 String?
+  spotifyProfileUrl   String?           @map("spotify_profile_url")
+  showSpotifyProfile  Boolean           @default(true) @map("show_spotify_profile")
+  isOnboarded         Boolean           @default(false) @map("is_onboarded")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  lastLogin           DateTime?         @map("last_login")
+  receivedConnections Connection[]      @relation("ConnectionReceiver")
+  sentConnections     Connection[]      @relation("ConnectionRequester")
+  eventAttendances    EventAttendee[]
+  eventComments       EventComment[]
+  createdEvents       Event[]           @relation("EventCreator")
+  links               Link[]
+  spotifyStats        UserSpotifyStats?
+  topArtists          UserTopArtist[]
+  topSongs            UserTopSong[]
+  topGenres           UserTopGenre[]
 
   @@map("users")
 }
 
 model UserSpotifyStats {
-  id              String   @id @default(cuid())
-  userId          String   @unique @map("user_id")
-  accessToken     String   @map("access_token")
-  refreshToken    String   @map("refresh_token")
-  tokenExpiresAt  DateTime @map("token_expires_at")
-  lastSyncedAt    DateTime? @map("last_synced_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  userId         String    @unique @map("user_id")
+  accessToken    String    @map("access_token")
+  refreshToken   String    @map("refresh_token")
+  tokenExpiresAt DateTime  @map("token_expires_at")
+  lastSyncedAt   DateTime? @map("last_synced_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_spotify_stats")
 }
 
 model Artist {
-  id                String   @id @default(cuid())
-  spotifyArtistId   String   @unique @map("spotify_artist_id")
-  name              String
-  genres            String[] @default([])
-  imageUrl          String?  @map("image_url")
-  spotifyUri        String?  @map("spotify_uri")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  userTopArtists    UserTopArtist[]
-  events            Event[]
+  id              String          @id @default(cuid())
+  spotifyArtistId String          @unique @map("spotify_artist_id")
+  name            String
+  genres          String[]        @default([])
+  imageUrl        String?         @map("image_url")
+  spotifyUri      String?         @map("spotify_uri")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  events          Event[]
+  userTopArtists  UserTopArtist[]
 
   @@map("artists")
 }
 
 model UserTopArtist {
-  id        String        @id @default(cuid())
-  userId    String        @map("user_id")
-  artistId  String        @map("artist_id")
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  artistId  String    @map("artist_id")
   rank      Int
-  timeRange TimeRange     @default(SHORT_TERM) @map("time_range")
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @updatedAt @map("updated_at")
-
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  artist    Artist        @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  timeRange TimeRange @default(SHORT_TERM) @map("time_range")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  artist    Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, artistId, timeRange])
   @@index([userId, timeRange, rank])
   @@map("user_top_artists")
 }
 
-model Connection {
-  id                  String           @id @default(cuid())
-  requesterId         String           @map("requester_id")
-  receiverId          String           @map("receiver_id")
-  status              ConnectionStatus @default(PENDING)
-  compatibilityScore  Decimal?         @map("compatibility_score") @db.Decimal(5, 2)
-  createdAt           DateTime         @default(now()) @map("created_at")
-  updatedAt           DateTime         @updatedAt @map("updated_at")
+model Song {
+  id              String   @id @default(cuid())
+  spotifySongId   String   @unique @map("spotify_song_id")
+  name            String
+  artists         String[] @default([])
+  albumImageUrl   String?  @map("album_image_url")
+  spotifyUri      String?  @map("spotify_uri")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  requester           User             @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  receiver            User             @relation("ConnectionReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  userTopSongs    UserTopSong[]
+
+  @@map("songs")
+}
+
+model UserTopSong {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  songId    String    @map("song_id")
+  rank      Int
+  timeRange TimeRange @default(SHORT_TERM) @map("time_range")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song      Song      @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songId, timeRange])
+  @@index([userId, timeRange, rank])
+  @@map("user_top_songs")
+}
+
+model UserTopGenre {
+  id        String   @id @default(cuid())
+  userId    String
+  genre     String
+  timeRange String   
+  rank      Int
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, genre, timeRange])
+  @@index([userId, timeRange, rank])
+  @@map("user_top_genres")
+}
+
+
+model Connection {
+  id                 String           @id @default(cuid())
+  requesterId        String           @map("requester_id")
+  receiverId         String           @map("receiver_id")
+  status             ConnectionStatus @default(PENDING)
+  compatibilityScore Decimal?         @map("compatibility_score") @db.Decimal(5, 2)
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  receiver           User             @relation("ConnectionReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  requester          User             @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, receiverId])
   @@index([receiverId, status])
@@ -104,23 +148,22 @@ model Connection {
 }
 
 model Event {
-  id            String          @id @default(cuid())
-  creatorId     String          @map("creator_id")
-  title         String
-  artistId      String?         @map("artist_id")
-  description   String?
-  dateTime      DateTime?       @map("date_time")
-  location      String?
-  musicTag      String?         @map("music_tag")
-  visibility    EventVisibility @default(PRIVATE)
-  maxAttendees  Int?            @map("max_attendees")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
-
-  creator       User            @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  artist        Artist?         @relation(fields: [artistId], references: [id], onDelete: SetNull)
-  attendees     EventAttendee[]
-  comments      EventComment[]
+  id           String          @id @default(cuid())
+  creatorId    String          @map("creator_id")
+  title        String
+  artistId     String?         @map("artist_id")
+  description  String?
+  dateTime     DateTime?       @map("date_time")
+  location     String?
+  musicTag     String?         @map("music_tag")
+  visibility   EventVisibility @default(PRIVATE)
+  maxAttendees Int?            @map("max_attendees")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  attendees    EventAttendee[]
+  comments     EventComment[]
+  artist       Artist?         @relation(fields: [artistId], references: [id])
+  creator      User            @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@index([visibility, dateTime])
   @@index([creatorId])
@@ -128,15 +171,14 @@ model Event {
 }
 
 model EventAttendee {
-  id        String              @id @default(cuid())
-  eventId   String              @map("event_id")
-  userId    String              @map("user_id")
-  status    AttendeeStatus      @default(INVITED)
-  createdAt DateTime            @default(now()) @map("created_at")
-  updatedAt DateTime            @updatedAt @map("updated_at")
-
-  event     Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String         @id @default(cuid())
+  eventId   String         @map("event_id")
+  userId    String         @map("user_id")
+  status    AttendeeStatus @default(INVITED)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  event     Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
   @@index([userId, status])
@@ -150,13 +192,26 @@ model EventComment {
   content   String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([eventId, createdAt])
   @@index([userId])
   @@map("event_comments")
+}
+
+model Link {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, order])
+  @@map("links")
 }
 
 enum ConnectionStatus {
@@ -180,19 +235,4 @@ enum TimeRange {
   SHORT_TERM
   MEDIUM_TERM
   LONG_TERM
-}
-
-model Link {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  title     String
-  url       String
-  order     Int      @default(0)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, order])
-  @@map("links")
 }
