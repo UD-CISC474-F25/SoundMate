@@ -109,7 +109,7 @@ export function DiscoveryList({
             onClick={() => onUserClick?.(user)}
           >
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
                 {(user.displayName || user.username).charAt(0).toUpperCase()}
               </div>
 
@@ -119,7 +119,7 @@ export function DiscoveryList({
                     {user.displayName || user.username}
                   </h3>
                   {user.compatibilityScore && user.compatibilityScore > 70 && (
-                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs font-medium flex-shrink-0">
+                    <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-medium flex-shrink-0">
                       {user.compatibilityScore}% match
                     </span>
                   )}

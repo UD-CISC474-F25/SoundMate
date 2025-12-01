@@ -199,7 +199,7 @@ function UserDetailsContent({
 
             <button
               onClick={handleCancel}
-              className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+              className= "w-full py-2 bg-gray-500/20 text-white-300 rounded-lg text-sm font-medium hover:bg-gray-500/30 transition-colors"
             >
               Decline
             </button>
