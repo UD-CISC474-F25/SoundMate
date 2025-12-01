@@ -1,65 +1,99 @@
 import React from "react";
 import ConnectionButton from "../ConnectionButton/ConnectionButton";
+import { RainbowStripe } from "../Animations/RainbowStripe";
 
 type User = {
   id: string;
-  profilePicture?: string;
-  name: string;
+  profilePicture?: string | null;
+  displayName?: string | null;
   username: string;
-  connectionStatus?: string | null;
-  connectionId?: string | null;
+  bio?: string | null;
+  compatibilityScore?: number;
+  connectionStatus?: "NONE" | "PENDING_SENT" | "PENDING_RECEIVED" | "ACCEPTED";
+  isPendingFromThem?: boolean;
+  connectionId?: string;
 };
 
 type DiscoveryListProps = {
   users: User[];
   onConnect: (userId: string) => void;
-  onAccept: (connectionId: string) => void;
-  onCancel: (connectionId: string) => void;
-  onOpenProfile: (user: User) => void;
+  onAcceptConnection: (userId: string) => void;
+  onCancelConnection: (userId: string) => void;
+  onUserClick?: (user: User) => void;
 };
 
-const DiscoveryList: React.FC<DiscoveryListProps> = ({ users, onConnect, onAccept, onCancel, onOpenProfile }) => {
+const DiscoveryList: React.FC<DiscoveryListProps> = ({
+  users,
+  onConnect,
+  onAcceptConnection,
+  onCancelConnection,
+  onUserClick,
+}) => {
+  if (users.length === 0) {
+    return (
+      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 shadow-lg text-center">
+        <p className="text-gray-400 mb-2">No users found</p>
+        <p className="text-gray-500 text-sm">Try a different search term</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-4 mt-4">
+    <ul className="space-y-4 mb-6">
       {users.map((user) => (
-        <div
-          key={user.id}
-          className="p-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl flex items-center gap-4 hover:bg-white/10 transition cursor-pointer"
-          onClick={() => onOpenProfile(user)}
-        >
-          {/* Profile Picture */}
-          <img
-            src={user.profilePicture || "/default-pfp.png"}
-            className="w-12 h-12 rounded-full object-cover border border-white/20"
-          />
-
-          {/* Name + Username */}
-          <div className="flex-1">
-            <p className="text-white font-semibold">{user.name}</p>
-            <p className="text-gray-400 text-sm">@{user.username}</p>
-          </div>
-
-          {/* Prevent the card click from triggering profile open */}
-          <div
-            className="w-36"
-            onClick={(e) => e.stopPropagation()}
+        <RainbowStripe key={user.id}>
+          <li
+            className={`bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-lg flex items-center gap-4 ${
+              onUserClick ? "cursor-pointer hover:border-gray-700" : ""
+            }`}
+            onClick={() => onUserClick?.(user)}
           >
-            <ConnectionButton
-              connectionStatus={(user.connectionStatus ?? "NONE") as
-                | "NONE"
-                | "PENDING_SENT"
-                | "PENDING_RECEIVED"
-                | "ACCEPTED"}
-              connectionId={user.connectionId ?? undefined}
-              userId={user.id}
-              onConnect={onConnect}
-              onAccept={onAccept}
-              onCancel={onCancel}
-            />
-          </div>
-        </div>
+            {/* Profile picture / fallback */}
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden">
+              {user.profilePicture ? (
+                <img
+                  src={user.profilePicture}
+                  alt={user.username}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                (user.displayName || user.username).charAt(0).toUpperCase()
+              )}
+            </div>
+
+            {/* Name / username / bio */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-white font-semibold truncate text-xl">
+                  {user.displayName || user.username}
+                </h3>
+                {user.compatibilityScore && user.compatibilityScore > 70 && (
+                  <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs font-medium flex-shrink-0">
+                    {user.compatibilityScore}% match
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-400 text-sm mb-1">@{user.username}</p>
+              {user.bio && (
+                <p className="text-gray-400 text-sm truncate">{user.bio}</p>
+              )}
+            </div>
+
+            {/* Connection button */}
+            <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <ConnectionButton
+                userId={user.id}
+                connectionStatus={user.connectionStatus ?? "NONE"}
+                connectionId={user.connectionId}
+                onConnect={onConnect}
+                onAccept={onAcceptConnection}
+                onCancel={onCancelConnection}
+              />
+            </div>
+          </li>
+        </RainbowStripe>
       ))}
-    </div>
+    </ul>
   );
 };
 

@@ -7,6 +7,7 @@ type Props = {
   onConnect: (userId: string) => void;
   onAccept: (connectionId: string) => void;
   onCancel: (connectionId: string) => void;
+  isPendingFromThem?: boolean;
 };
 
 const ConnectionButton: React.FC<Props> = ({
@@ -16,13 +17,17 @@ const ConnectionButton: React.FC<Props> = ({
   onConnect,
   onAccept,
   onCancel,
+  isPendingFromThem = false,
 }) => {
+  const baseButton =
+    "px-4 py-2 rounded-xl font-medium text-sm transition-colors w-full flex items-center justify-center gap-2";
+
   switch (connectionStatus) {
     case "NONE":
       return (
         <button
           onClick={() => onConnect(userId)}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md w-full"
+          className={`${baseButton} bg-white/20 backdrop-blur-xl border border-white/30 hover:bg-white/30 text-white`}
         >
           Add Friend
         </button>
@@ -32,7 +37,7 @@ const ConnectionButton: React.FC<Props> = ({
       return (
         <button
           onClick={() => onCancel(connectionId!)}
-          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md w-full"
+          className={`${baseButton} bg-gray-700/30 backdrop-blur-xl border border-gray-500/30 text-gray-200 hover:bg-gray-700/50`}
         >
           Cancel Request
         </button>
@@ -43,13 +48,13 @@ const ConnectionButton: React.FC<Props> = ({
         <div className="flex gap-2 w-full">
           <button
             onClick={() => onAccept(connectionId!)}
-            className="bg-green-500 text-white px-4 py-2 rounded-md flex-1"
+            className={`${baseButton} bg-green-500/20 backdrop-blur-xl border border-green-400/30 text-green-300 hover:bg-green-500/30 flex-1`}
           >
             Accept
           </button>
           <button
             onClick={() => onCancel(connectionId!)}
-            className="bg-red-500 text-white px-4 py-2 rounded-md flex-1"
+            className={`${baseButton} bg-red-500/20 backdrop-blur-xl border border-red-400/30 text-red-300 hover:bg-red-500/30 flex-1`}
           >
             Decline
           </button>
@@ -60,9 +65,9 @@ const ConnectionButton: React.FC<Props> = ({
       return (
         <button
           onClick={() => onCancel(connectionId!)}
-          className="text-red-400 underline w-full"
+          className={`${baseButton} text-purple-400 hover:text-white border border-purple-400/30 bg-purple-500/10 backdrop-blur-xl`}
         >
-          Unfriend
+          Friends
         </button>
       );
 

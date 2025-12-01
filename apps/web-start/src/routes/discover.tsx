@@ -289,20 +289,23 @@ function FriendsDiscoveryPage() {
             profilePicture: u.profilePhotoUrl ?? undefined,
             name: u.displayName ?? u.username,
             username: u.username,
-            connectionStatus: u.connectionStatus ?? null,
+            connectionStatus:
+              u.connectionStatus === 'PENDING'
+                ? (u.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT')
+                : (u.connectionStatus === 'ACCEPTED' ? 'ACCEPTED' : 'NONE'),
             connectionId: undefined
           }))}
-          onOpenProfile={(user) => {
+          onUserClick={(user) => {
             // find the original UserProfile by id and open it in the modal
             const original = users.find(u => u.id === user.id) ?? null;
             setSelectedUser(original);
           }}
           onConnect={handleConnect}
-          onAccept={(connectionId) => {
+          onAcceptConnection={(connectionId) => {
             // wrapper that forwards the id to the existing handler
             handleAcceptConnection(connectionId);
           }}
-          onCancel={(connectionId) => {
+          onCancelConnection={(connectionId) => {
             // wrapper that forwards the id to the existing handler
             handleCancelConnection(connectionId);
           }}
@@ -311,22 +314,11 @@ function FriendsDiscoveryPage() {
         {/* USER DETAIL MODAL */}
         {selectedUser && (
           <DiscoveryModal
-            user={{
-              id: selectedUser.id,
-              name: selectedUser.displayName ?? selectedUser.username,
-              username: selectedUser.username,
-              bio: selectedUser.bio ?? undefined,
-              profilePicture: selectedUser.profilePhotoUrl ?? undefined,
-              connectionStatus:
-                selectedUser.connectionStatus === 'PENDING'
-                  ? (selectedUser.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT')
-                  : (selectedUser.connectionStatus === 'ACCEPTED' ? 'ACCEPTED' : 'NONE'),
-              connectionId: undefined
-            }}
+            user={selectedUser}
             onClose={() => setSelectedUser(null)}
             onConnect={handleConnect}
-            onAccept={handleAcceptConnection}
-            onCancel={handleCancelConnection}
+            onAcceptConnection={handleAcceptConnection}
+            onCancelConnection={handleCancelConnection}
           />
         )}
       </div>
