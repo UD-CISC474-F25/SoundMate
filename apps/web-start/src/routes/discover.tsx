@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Check, Clock, Music, Search, UserCheck, UserPlus, X } from 'lucide-react';
 import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
+import { TypewriterText } from '../components/Animations';
 
 export const Route = createFileRoute('/discover')({
   component: FriendsDiscoveryPage,
@@ -30,6 +31,23 @@ interface UserProfile {
   connectionStatus?: 'PENDING' | 'ACCEPTED' | 'NONE';
   isPendingFromThem?: boolean;
   compatibilityScore?: number;
+}
+
+function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 p-6 rounded-xl max-w-lg w-full relative border border-gray-700 shadow-lg">
+        <button
+          className="absolute top-3 right-3 text-gray-400 hover:text-white text-xl font-bold"
+          onClick={onClose}
+          aria-label="Close modal"
+        >
+          ×
+        </button>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function FriendsDiscoveryPage() {
@@ -64,6 +82,7 @@ function FriendsDiscoveryPage() {
       });
     }
   }, [authLoading, isAuthenticated, loginWithRedirect]);
+
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [users, setUsers] = useState<Array<UserProfile>>([
     {
@@ -244,6 +263,7 @@ function FriendsDiscoveryPage() {
     );
   };
 
+  /* LOADING STATE */
   if (authLoading || !isAuthenticated || isCheckingOnboarding || needsOnboarding) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -256,8 +276,19 @@ function FriendsDiscoveryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pt-28 px-6 pb-12">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-black pt-20 px-6 pb-12">
+      <div className="max-w-7xl mx-auto">
+        {/* HEADER */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            <TypewriterText text="Discover Friends" delay={200} />
+          </h1>
+          <p className="text-gray-400">
+            <TypewriterText text="Connect with people who share your music taste" delay={500} />
+          </p>
+        </div>
+
+        {/* ALERTS */}
         {showSpotifySuccess && (
           <div className="mb-6 bg-green-500/20 border border-green-500/50 rounded-lg p-4 text-green-400">
             Spotify connected successfully! Your music data has been synced.
@@ -269,13 +300,7 @@ function FriendsDiscoveryPage() {
           </div>
         )}
 
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Discover Friends</h1>
-          <p className="text-gray-400">
-            Connect with people who share your music taste
-          </p>
-        </div>
-
+        {/* SEARCH */}
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -297,6 +322,7 @@ function FriendsDiscoveryPage() {
           </div>
         </div>
 
+        {/* USER LIST */}
         <div className="space-y-3">
           {filteredUsers.length === 0 ? (
             <div className="bg-gray-900 border border-gray-800 rounded-lg p-12 text-center">
@@ -343,133 +369,117 @@ function FriendsDiscoveryPage() {
           )}
         </div>
 
-
+        {/* USER DETAIL MODAL */}
         {selectedUser && (
-          <div 
-            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6"
-            onClick={() => setSelectedUser(null)}
-          >
-            <div 
-              className="bg-gray-900 border border-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold">
-                      {(selectedUser.displayName || selectedUser.username).charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-white mb-1">
-                        {selectedUser.displayName || selectedUser.username}
-                      </h2>
-                      <p className="text-gray-400">@{selectedUser.username}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setSelectedUser(null)}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <X size={24} />
-                  </button>
+          <Modal onClose={() => setSelectedUser(null)}>
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold">
+                  {(selectedUser.displayName || selectedUser.username).charAt(0).toUpperCase()}
                 </div>
-
-                {selectedUser.compatibilityScore && (
-                  <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-purple-400 text-sm font-medium">Music Compatibility</span>
-                      <span className="text-purple-400 text-2xl font-bold">{selectedUser.compatibilityScore}%</span>
-                    </div>
-                    <div className="w-full bg-gray-800 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${selectedUser.compatibilityScore}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {selectedUser.bio && (
-                  <div className="mb-6">
-                    <p className="text-gray-300 leading-relaxed">{selectedUser.bio}</p>
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 text-gray-400 mb-3">
-                    <Music size={18} />
-                    <span className="text-sm font-medium">Top Artists</span>
-                  </div>
-                  <div className="space-y-2">
-                    {selectedUser.topArtists.slice(0, 5).map((topArtist, idx) => (
-                      <div 
-                        key={idx}
-                        className="bg-gray-800 rounded-lg p-3 flex items-center gap-3"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                          {topArtist.artist.name.charAt(0)}
-                        </div>
-                        <span className="text-white">{topArtist.artist.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  {selectedUser.connectionStatus === 'ACCEPTED' ? (
-                    <button className="flex-1 py-3 bg-green-500/20 text-green-400 rounded-lg font-medium flex items-center justify-center gap-2">
-                      <UserCheck size={20} />
-                      <span>Friends</span>
-                    </button>
-                  ) : selectedUser.connectionStatus === 'PENDING' && selectedUser.isPendingFromThem ? (
-                    <>
-                      <button 
-                        onClick={() => {
-                          handleAcceptConnection(selectedUser.id);
-                          setSelectedUser({ ...selectedUser, connectionStatus: 'ACCEPTED', isPendingFromThem: false });
-                        }}
-                        className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Check size={20} />
-                        <span>Accept Request</span>
-                      </button>
-                      <button 
-                        onClick={() => {
-                          handleCancelConnection(selectedUser.id);
-                          setSelectedUser({ ...selectedUser, connectionStatus: 'NONE', isPendingFromThem: false });
-                        }}
-                        className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Decline
-                      </button>
-                    </>
-                  ) : selectedUser.connectionStatus === 'PENDING' ? (
-                    <button 
-                      onClick={() => {
-                        handleCancelConnection(selectedUser.id);
-                        setSelectedUser({ ...selectedUser, connectionStatus: 'NONE' });
-                      }}
-                      className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Clock size={20} />
-                      <span>Cancel Request</span>
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => {
-                        handleConnect(selectedUser.id);
-                        setSelectedUser({ ...selectedUser, connectionStatus: 'PENDING', isPendingFromThem: false });
-                      }}
-                      className="flex-1 py-3 bg-white hover:bg-gray-100 text-black rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <UserPlus size={20} />
-                      <span>Send Friend Request</span>
-                    </button>
-                  )}
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-1">
+                    {selectedUser.displayName || selectedUser.username}
+                  </h2>
+                  <p className="text-gray-400">@{selectedUser.username}</p>
                 </div>
               </div>
             </div>
-          </div>
+
+            {selectedUser.compatibilityScore && (
+              <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-purple-400 text-sm font-medium">Music Compatibility</span>
+                  <span className="text-purple-400 text-2xl font-bold">{selectedUser.compatibilityScore}%</span>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${selectedUser.compatibilityScore}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {selectedUser.bio && (
+              <div className="mb-6">
+                <p className="text-gray-300 leading-relaxed">{selectedUser.bio}</p>
+              </div>
+            )}
+
+            <div className="mb-6">
+              <div className="flex items-center gap-2 text-gray-400 mb-3">
+                <Music size={18} />
+                <span className="text-sm font-medium">Top Artists</span>
+              </div>
+              <div className="space-y-2">
+                {selectedUser.topArtists.slice(0, 5).map((topArtist, idx) => (
+                  <div 
+                    key={idx}
+                    className="bg-gray-800 rounded-lg p-3 flex items-center gap-3"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                      {topArtist.artist.name.charAt(0)}
+                    </div>
+                    <span className="text-white">{topArtist.artist.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              {selectedUser.connectionStatus === 'ACCEPTED' ? (
+                <button className="flex-1 py-3 bg-green-500/20 text-green-400 rounded-lg font-medium flex items-center justify-center gap-2">
+                  <UserCheck size={20} />
+                  <span>Friends</span>
+                </button>
+              ) : selectedUser.connectionStatus === 'PENDING' && selectedUser.isPendingFromThem ? (
+                <>
+                  <button 
+                    onClick={() => {
+                      handleAcceptConnection(selectedUser.id);
+                      setSelectedUser({ ...selectedUser, connectionStatus: 'ACCEPTED', isPendingFromThem: false });
+                    }}
+                    className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Check size={20} />
+                    <span>Accept Request</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleCancelConnection(selectedUser.id);
+                      setSelectedUser({ ...selectedUser, connectionStatus: 'NONE', isPendingFromThem: false });
+                    }}
+                    className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Decline
+                  </button>
+                </>
+              ) : selectedUser.connectionStatus === 'PENDING' ? (
+                <button 
+                  onClick={() => {
+                    handleCancelConnection(selectedUser.id);
+                    setSelectedUser({ ...selectedUser, connectionStatus: 'NONE' });
+                  }}
+                  className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Clock size={20} />
+                  <span>Cancel Request</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => {
+                    handleConnect(selectedUser.id);
+                    setSelectedUser({ ...selectedUser, connectionStatus: 'PENDING', isPendingFromThem: false });
+                  }}
+                  className="flex-1 py-3 bg-white hover:bg-gray-100 text-black rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <UserPlus size={20} />
+                  <span>Send Friend Request</span>
+                </button>
+              )}
+            </div>
+          </Modal>
         )}
       </div>
     </div>
