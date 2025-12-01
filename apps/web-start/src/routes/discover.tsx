@@ -244,18 +244,37 @@ function FriendsDiscoveryPage() {
         {/* SEARCH */}
         <div className="mb-6">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <div className="absolute inset-0 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 -z-1" />
+
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
+              size={20}
+            />
+
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by username, name, or interests..."
-              className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gray-700"
+              className="
+                w-full
+                pl-12 pr-12 py-3
+                bg-transparent
+                text-white
+                placeholder-gray-400
+                rounded-xl
+                focus:outline-none
+              "
             />
+
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                className="
+                  absolute right-4 top-1/2 -translate-y-1/2
+                  text-gray-300 hover:text-white
+                  transition-colors
+                "
               >
                 <X size={20} />
               </button>
