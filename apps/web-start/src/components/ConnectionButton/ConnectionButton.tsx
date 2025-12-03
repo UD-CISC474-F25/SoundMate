@@ -1,4 +1,5 @@
 import React from "react";
+import { UserPlus, Clock, Check, X, Users } from "lucide-react";
 
 type Props = {
   connectionStatus: "NONE" | "PENDING_SENT" | "PENDING_RECEIVED" | "ACCEPTED";
@@ -17,18 +18,18 @@ const ConnectionButton: React.FC<Props> = ({
   onConnect,
   onAccept,
   onCancel,
-  isPendingFromThem = false,
 }) => {
-  const baseButton =
-    "px-4 py-2 rounded-xl font-medium text-sm transition-colors w-full flex items-center justify-center gap-2";
+  const base =
+    `px-4 py-2 rounded-full font-medium transition-colors cursor-pointer capitalize border border-white/30 bg-white/10 flex items-center gap-2 justify-center w-full`;
 
   switch (connectionStatus) {
     case "NONE":
       return (
         <button
           onClick={() => onConnect(userId)}
-          className={`${baseButton} bg-white/20 backdrop-blur-xl border border-white/30 hover:bg-white/30 text-white`}
+          className={`${base} hover:shadow-[0_0_12px_rgba(255,255,255,0.4)]`}
         >
+          <UserPlus size={16} />
           Add Friend
         </button>
       );
@@ -37,8 +38,9 @@ const ConnectionButton: React.FC<Props> = ({
       return (
         <button
           onClick={() => onCancel(connectionId!)}
-          className={`${baseButton} bg-gray-700/30 backdrop-blur-xl border border-gray-500/30 text-gray-200 hover:bg-gray-700/50`}
+          className={`${base} border-blue-300/40 hover:shadow-[0_0_12px_rgba(120,150,255,0.5)]`}
         >
+          <Clock size={16} />
           Cancel Request
         </button>
       );
@@ -48,14 +50,16 @@ const ConnectionButton: React.FC<Props> = ({
         <div className="flex gap-2 w-full">
           <button
             onClick={() => onAccept(connectionId!)}
-            className={`${baseButton} bg-green-500/20 backdrop-blur-xl border border-green-400/30 text-green-300 hover:bg-green-500/30 flex-1`}
+            className={`${base} flex-1 border-green-300/40 hover:shadow-[0_0_12px_rgba(0,255,150,0.5)]`}
           >
+            <Check size={16} />
             Accept
           </button>
           <button
             onClick={() => onCancel(connectionId!)}
-            className={`${baseButton} bg-red-500/20 backdrop-blur-xl border border-red-400/30 text-red-300 hover:bg-red-500/30 flex-1`}
+            className={`${base} flex-1 border-red-300/40 hover:shadow-[0_0_12px_rgba(255,60,80,0.5)]`}
           >
+            <X size={16} />
             Decline
           </button>
         </div>
@@ -65,8 +69,9 @@ const ConnectionButton: React.FC<Props> = ({
       return (
         <button
           onClick={() => onCancel(connectionId!)}
-          className={`${baseButton} text-purple-400 hover:text-white border border-purple-400/30 bg-purple-500/10 backdrop-blur-xl`}
+          className={`${base} border-purple-400/40 hover:shadow-[0_0_14px_rgba(180,100,255,0.6)]`}
         >
+          <Users size={16} />
           Friends
         </button>
       );

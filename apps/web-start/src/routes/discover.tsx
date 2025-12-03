@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Search, X } from 'lucide-react';
 import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
@@ -8,14 +8,7 @@ import DiscoveryList from '../components/DiscoveryList/DiscoveryList';
 import DiscoveryModal from '../components/DiscoveryList/DiscoveryModal';
 
 export const Route = createFileRoute('/discover')({
-  component: FriendsDiscoveryPage,
-  loader: async () => {
-    // TODO: Replace with actual API calls
-    return {
-      users: [],
-      connections: []
-    };
-  }
+  component: DiscoveryPage,
 });
 
 interface UserProfile {
@@ -33,178 +26,254 @@ interface UserProfile {
   connectionStatus?: 'PENDING' | 'ACCEPTED' | 'NONE';
   isPendingFromThem?: boolean;
   compatibilityScore?: number;
+  connectionId?: string | null;
 }
 
-function FriendsDiscoveryPage() {
-  const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
+function DiscoveryPage() {
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    loginWithRedirect,
+    getAccessTokenSilently,
+  } = useAuth0();
+
   const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSpotifySuccess, setShowSpotifySuccess] = useState(false);
   const [showSpotifyError, setShowSpotifyError] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [users, setUsers] = useState<Array<UserProfile>>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
 
+  const apiCall = async (url: string, options: RequestInit = {}) => {
+    const token = await getAccessTokenSilently();
+    return fetch(`${import.meta.env.VITE_API_URL}${url}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+  };
+
+  // Static fallback mock users
+  const mockUsers: UserProfile[] = useMemo(
+    () => [
+      {
+        id: 'mock-1',
+        username: 'lofi_lover',
+        displayName: 'Luna',
+        profilePhotoUrl: 'https://i.pravatar.cc/150?img=32',
+        bio: 'I make playlists at 3AM',
+        topArtists: [
+          { artist: { name: 'Joji', imageUrl: null } },
+          { artist: { name: 'Keshi', imageUrl: null } },
+        ],
+        connectionStatus: 'NONE',
+        isPendingFromThem: false,
+        compatibilityScore: 92,
+        connectionId: null,
+      },
+      {
+        id: 'mock-2',
+        username: 'rockstar98',
+        displayName: 'Evan',
+        profilePhotoUrl: 'https://i.pravatar.cc/150?img=12',
+        bio: 'Rock & indie forever 🤘',
+        topArtists: [
+          { artist: { name: 'Arctic Monkeys', imageUrl: null } },
+          { artist: { name: 'The Strokes', imageUrl: null } },
+        ],
+        connectionStatus: 'NONE',
+        isPendingFromThem: false,
+        compatibilityScore: 88,
+        connectionId: null,
+      },
+      {
+        id: 'mock-3',
+        username: 'edmfairy',
+        displayName: 'Mia',
+        profilePhotoUrl: 'https://i.pravatar.cc/150?img=47',
+        bio: 'PLUR ✨ festival girlie',
+        topArtists: [
+          { artist: { name: 'Illenium', imageUrl: null } },
+          { artist: { name: 'Seven Lions', imageUrl: null } },
+        ],
+        connectionStatus: 'NONE',
+        isPendingFromThem: false,
+        compatibilityScore: 95,
+        connectionId: null,
+      },
+    ],
+    []
+  );
+
+  // Load discovery data
+  useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
+
+    const loadData = async () => {
+      setIsLoadingUsers(true);
+
+      try {
+        const [usersRes, connectionsRes] = await Promise.all([
+          apiCall('/users/discover'),
+          apiCall('/connections'),
+        ]);
+
+        const usersData = usersRes.ok ? await usersRes.json() : [];
+        const connectionsData = connectionsRes.ok ? await connectionsRes.json() : [];
+
+        const usersWithConnections = usersData.map((user: any) => {
+          const connection = connectionsData.find(
+            (c: any) => c.requesterId === user.id || c.receiverId === user.id
+          );
+
+          if (!connection) {
+            return { ...user, connectionStatus: 'NONE', connectionId: null };
+          }
+
+          return {
+            ...user,
+            connectionStatus: connection.status,
+            isPendingFromThem:
+              connection.receiverId !== user.id && connection.status === 'PENDING',
+            connectionId: connection.id,
+          };
+        });
+
+        setUsers([...usersWithConnections, ...mockUsers]);
+      } catch (err) {
+        console.error('Failed to load discovery data:', err);
+        setUsers(mockUsers);
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+
+    void loadData();
+  }, [authLoading, isAuthenticated, apiCall, mockUsers]);
+
+  // Spotify callback UI
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('spotify') === 'connected') {
+    const state = params.get('spotify');
+
+    if (state === 'connected') {
       setShowSpotifySuccess(true);
-      window.history.replaceState({}, '', '/discover');
-      setTimeout(() => setShowSpotifySuccess(false), 5000);
-    } else if (params.get('spotify') === 'error') {
+    } else if (state === 'error') {
       setShowSpotifyError(true);
+    }
+
+    if (state) {
       window.history.replaceState({}, '', '/discover');
-      setTimeout(() => setShowSpotifyError(false), 5000);
+      setTimeout(() => {
+        setShowSpotifySuccess(false);
+        setShowSpotifyError(false);
+      }, 5000);
     }
   }, []);
 
+  // Redirect unauthenticated users
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const isFromSpotifyCallback = params.get('spotify') === 'connected' || params.get('spotify') === 'error';
-    const hasJustAuthenticated = window.location.search.includes('code=') || window.location.search.includes('state=');
+    const spotifyCallback = params.get('spotify');
+    const hasOAuthParams =
+      window.location.search.includes('code=') || window.location.search.includes('state=');
 
-    if (!authLoading && !isAuthenticated && !isFromSpotifyCallback && !hasJustAuthenticated) {
+    if (!authLoading && !isAuthenticated && !spotifyCallback && !hasOAuthParams) {
       void loginWithRedirect({
         appState: { returnTo: window.location.pathname },
       });
     }
   }, [authLoading, isAuthenticated, loginWithRedirect]);
 
-  {/* USER PROFILE & CONNECTIONS STATE */}
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const [users, setUsers] = useState<Array<UserProfile>>([
-    {
-      id: '1',
-      username: 'jazzlover92',
-      displayName: 'Sarah Johnson',
-      profilePhotoUrl: null,
-      bio: 'Live music enthusiast 🎵 | Jazz & Blues | Concert photographer',
-      topArtists: [
-        { artist: { name: 'Miles Davis', imageUrl: null } },
-        { artist: { name: 'John Coltrane', imageUrl: null } },
-        { artist: { name: 'Billie Holiday', imageUrl: null } }
-      ],
-      connectionStatus: 'NONE',
-      compatibilityScore: 87
-    },
-    {
-      id: '2',
-      username: 'indie_vibes',
-      displayName: 'Alex Chen',
-      profilePhotoUrl: null,
-      bio: 'Indie rock collector | Vinyl addict | Festival goer',
-      topArtists: [
-        { artist: { name: 'Tame Impala', imageUrl: null } },
-        { artist: { name: 'Arctic Monkeys', imageUrl: null } },
-        { artist: { name: 'The Strokes', imageUrl: null } }
-      ],
-      connectionStatus: 'PENDING',
-      isPendingFromThem: false,
-      compatibilityScore: 72
-    },
-    {
-      id: '3',
-      username: 'electronic_soul',
-      displayName: 'Marcus Williams',
-      profilePhotoUrl: null,
-      bio: 'Electronic music producer | House & Techno | Late night DJ',
-      topArtists: [
-        { artist: { name: 'Daft Punk', imageUrl: null } },
-        { artist: { name: 'Disclosure', imageUrl: null } },
-        { artist: { name: 'Four Tet', imageUrl: null } }
-      ],
-      connectionStatus: 'ACCEPTED',
-      compatibilityScore: 65
-    },
-    {
-      id: '4',
-      username: 'rock_n_roll',
-      displayName: null,
-      profilePhotoUrl: null,
-      bio: 'Classic rock forever 🎸',
-      topArtists: [
-        { artist: { name: 'Led Zeppelin', imageUrl: null } },
-        { artist: { name: 'Pink Floyd', imageUrl: null } },
-        { artist: { name: 'The Beatles', imageUrl: null } }
-      ],
-      connectionStatus: 'PENDING',
-      isPendingFromThem: true,
-      compatibilityScore: 58
-    },
-    {
-      id: '5',
-      username: 'folk_wanderer',
-      displayName: 'Emma Davis',
-      profilePhotoUrl: null,
-      bio: 'Folk & acoustic | Coffee shop performances | Nature lover',
-      topArtists: [
-        { artist: { name: 'Bon Iver', imageUrl: null } },
-        { artist: { name: 'Fleet Foxes', imageUrl: null } },
-        { artist: { name: 'Iron & Wine', imageUrl: null } }
-      ],
-      connectionStatus: 'NONE',
-      compatibilityScore: 81
-    },
-    {
-      id: '6',
-      username: 'hiphop_head',
-      displayName: 'Jordan Taylor',
-      profilePhotoUrl: null,
-      bio: 'Hip-hop culture | Freestyle rapper | Beat maker',
-      topArtists: [
-        { artist: { name: 'Kendrick Lamar', imageUrl: null } },
-        { artist: { name: 'J. Cole', imageUrl: null } },
-        { artist: { name: 'Anderson .Paak', imageUrl: null } }
-      ],
-      connectionStatus: 'NONE',
-      compatibilityScore: 45
-    }
-  ]);
-
-  const filteredUsers = users.filter(user => {
-    const query = searchQuery.toLowerCase();
-    return (
-      user.username.toLowerCase().includes(query) ||
-      user.displayName?.toLowerCase().includes(query) ||
-      user.bio?.toLowerCase().includes(query)
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return users.filter((u) =>
+      u.username.toLowerCase().includes(q) ||
+      u.displayName?.toLowerCase().includes(q) ||
+      u.bio?.toLowerCase().includes(q)
     );
-  });
+  }, [users, searchQuery]);
 
-  const handleConnect = (userId: string) => {
-    // TODO: POST
-    setUsers(users.map(u => 
-      u.id === userId 
-        ? { ...u, connectionStatus: 'PENDING', isPendingFromThem: false }
-        : u
-    ));
-    if (selectedUser?.id === userId) {
-      setSelectedUser({ ...selectedUser, connectionStatus: 'PENDING', isPendingFromThem: false });
+  // Connection handlers
+  const handleConnect = async (userId: string) => {
+    try {
+      const res = await apiCall('/connections', {
+        method: 'POST',
+        body: JSON.stringify({ receiverId: userId }),
+      });
+      if (!res.ok) throw new Error();
+      const newConnection = await res.json();
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId
+            ? { ...u, connectionStatus: 'PENDING', isPendingFromThem: false, connectionId: newConnection.id }
+            : u
+        )
+      );
+      if (selectedUser?.id === userId) {
+        setSelectedUser((u) =>
+          u ? { ...u, connectionStatus: 'PENDING', isPendingFromThem: false, connectionId: newConnection.id } : u
+        );
+      }
+    } catch {
+      alert('Failed to send request.');
     }
   };
 
-  const handleAcceptConnection = (userId: string) => {
-    // TODO: PATCH
-    setUsers(users.map(u => 
-      u.id === userId 
-        ? { ...u, connectionStatus: 'ACCEPTED', isPendingFromThem: false }
-        : u
-    ));
-    if (selectedUser?.id === userId) {
-      setSelectedUser({ ...selectedUser, connectionStatus: 'ACCEPTED', isPendingFromThem: false });
+  const handleAcceptConnection = async (connectionId: string) => {
+    try {
+      const res = await apiCall(`/connections/${connectionId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'ACCEPTED' }),
+      });
+      if (!res.ok) throw new Error();
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.connectionId === connectionId
+            ? { ...u, connectionStatus: 'ACCEPTED', isPendingFromThem: false }
+            : u
+        )
+      );
+      if (selectedUser?.connectionId === connectionId) {
+        setSelectedUser((u) =>
+          u ? { ...u, connectionStatus: 'ACCEPTED', isPendingFromThem: false } : u
+        );
+      }
+    } catch {
+      alert('Failed to accept connection.');
     }
   };
 
-  const handleCancelConnection = (userId: string) => {
-    // TODO: DELETE
-    setUsers(users.map(u => 
-      u.id === userId 
-        ? { ...u, connectionStatus: 'NONE', isPendingFromThem: false }
-        : u
-    ));
-    if (selectedUser?.id === userId) {
-      setSelectedUser({ ...selectedUser, connectionStatus: 'NONE', isPendingFromThem: false });
+  const handleCancelConnection = async (connectionId: string) => {
+    try {
+      const res = await apiCall(`/connections/${connectionId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.connectionId === connectionId
+            ? { ...u, connectionStatus: 'NONE', isPendingFromThem: false, connectionId: null }
+            : u
+        )
+      );
+      if (selectedUser?.connectionId === connectionId) {
+        setSelectedUser((u) =>
+          u ? { ...u, connectionStatus: 'NONE', isPendingFromThem: false, connectionId: null } : u
+        );
+      }
+    } catch {
+      alert('Failed to cancel connection.');
     }
   };
 
-  /* LOADING STATE */
+  // Gated UI loading
   if (authLoading || !isAuthenticated || isCheckingOnboarding || needsOnboarding) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -219,7 +288,6 @@ function FriendsDiscoveryPage() {
   return (
     <div className="min-h-screen bg-black pt-20 px-6 pb-12">
       <div className="max-w-7xl mx-auto">
-        {/* HEADER */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
             <TypewriterText text="Discover Friends" delay={200} />
@@ -229,89 +297,68 @@ function FriendsDiscoveryPage() {
           </p>
         </div>
 
-        {/* ALERTS */}
         {showSpotifySuccess && (
           <div className="mb-6 bg-green-500/20 border border-green-500/50 rounded-lg p-4 text-green-400">
             Spotify connected successfully! Your music data has been synced.
           </div>
         )}
+
         {showSpotifyError && (
           <div className="mb-6 bg-red-500/20 border border-red-500/50 rounded-lg p-4 text-red-400">
             Failed to connect Spotify. Please try again.
           </div>
         )}
 
-        {/* SEARCH */}
-        <div className="mb-6">
-          <div className="relative">
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 -z-1" />
-
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
-              size={20}
-            />
-
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by username, name, or interests..."
-              className="
-                w-full
-                pl-12 pr-12 py-3
-                bg-transparent
-                text-white
-                placeholder-gray-400
-                rounded-xl
-                focus:outline-none
-              "
-            />
-
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="
-                  absolute right-4 top-1/2 -translate-y-1/2
-                  text-gray-300 hover:text-white
-                  transition-colors
-                "
-              >
-                <X size={20} />
-              </button>
-            )}
-          </div>
+        {/* Search */}
+        <div className="mb-6 relative">
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={20} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by username, name, or interests..."
+            className="w-full pl-12 pr-12 py-3 bg-transparent text-white placeholder-gray-400 rounded-xl focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
-        {/* USER LIST */}
-        <DiscoveryList
-          users={filteredUsers.map(u => ({
-            id: u.id,
-            profilePicture: u.profilePhotoUrl ?? undefined,
-            name: u.displayName ?? u.username,
-            username: u.username,
-            connectionStatus:
-              u.connectionStatus === 'PENDING'
-                ? (u.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT')
-                : (u.connectionStatus === 'ACCEPTED' ? 'ACCEPTED' : 'NONE'),
-            connectionId: undefined
-          }))}
-          onUserClick={(user) => {
-            // find the original UserProfile by id and open it in the modal
-            const original = users.find(u => u.id === user.id) ?? null;
-            setSelectedUser(original);
-          }}
-          onConnect={handleConnect}
-          onAcceptConnection={(connectionId) => {
-            // wrapper that forwards the id to the existing handler
-            handleAcceptConnection(connectionId);
-          }}
-          onCancelConnection={(connectionId) => {
-            // wrapper that forwards the id to the existing handler
-            handleCancelConnection(connectionId);
-          }}
-        />
+        {/* Discovery List */}
+        {isLoadingUsers ? (
+          <div className="text-center py-12">
+            <div className="animate-spin h-12 w-12 rounded-full border-b-2 border-white mx-auto mb-4" />
+            <p className="text-gray-400">Loading users...</p>
+          </div>
+        ) : (
+          <DiscoveryList
+            users={filteredUsers.map((u) => ({
+              id: u.id,
+              profilePicture: u.profilePhotoUrl ?? undefined,
+              displayName: u.displayName ?? undefined,
+              username: u.username,
+              bio: u.bio ?? undefined,
+              compatibilityScore: u.compatibilityScore,
+              connectionStatus: u.connectionStatus ?? 'NONE',
+              isPendingFromThem: u.isPendingFromThem,
+              connectionId: u.connectionId ?? undefined,
+            }))}
+            onUserClick={(u) => {
+              const original = users.find((p) => p.id === u.id) ?? null;
+              setSelectedUser(original);
+            }}
+            onConnect={handleConnect}
+            onAcceptConnection={handleAcceptConnection}
+            onCancelConnection={handleCancelConnection}
+          />
+        )}
 
-        {/* USER DETAIL MODAL */}
         {selectedUser && (
           <DiscoveryModal
             user={selectedUser}

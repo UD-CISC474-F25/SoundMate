@@ -1,5 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
-import { SlideFade } from '../Animations';
+import { useRef, useState } from 'react';
 import ConnectionButton from '../ConnectionButton/ConnectionButton';
 
 interface UserProfile {
@@ -9,17 +8,18 @@ interface UserProfile {
   profilePhotoUrl: string | null;
   bio: string | null;
   topArtists: Array<{ artist: { name: string; imageUrl: string | null } }>;
-  connectionStatus?: 'PENDING' | 'ACCEPTED' | 'NONE';
+  connectionStatus?: "NONE" | "PENDING" | "ACCEPTED";
   isPendingFromThem?: boolean;
   compatibilityScore?: number;
+  connectionId?: string | null;
 }
 
 interface DiscoveryModalProps {
   user: UserProfile;
   onClose: () => void;
   onConnect: (userId: string) => void;
-  onAcceptConnection: (userId: string) => void;
-  onCancelConnection: (userId: string) => void;
+  onAcceptConnection: (connectionId: string) => void;
+  onCancelConnection: (connectionId: string) => void;
 }
 
 export function DiscoveryModal({
@@ -32,11 +32,13 @@ export function DiscoveryModal({
   const detailsRef = useRef<HTMLDivElement>(null);
   const [modalHeight, setModalHeight] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (detailsRef.current) {
-      setModalHeight(detailsRef.current.scrollHeight + 100); // extra space for footer
+  const getConnectionStatus = () => {
+    if (user.connectionStatus === 'ACCEPTED') return 'ACCEPTED';
+    if (user.connectionStatus === 'PENDING') {
+      return user.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT';
     }
-  }, [user]);
+    return 'NONE';
+  };
 
   return (
     <div
@@ -51,7 +53,6 @@ export function DiscoveryModal({
           transition: 'height 0.3s ease',
         }}
       >
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold z-10"
@@ -59,15 +60,21 @@ export function DiscoveryModal({
           &times;
         </button>
 
-        {/* Modal Content */}
         <div
           ref={detailsRef}
           className="p-6 flex-1 overflow-y-auto"
         >
-          {/* Header */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold">
-              {(user.displayName || user.username).charAt(0).toUpperCase()}
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+              {user.profilePhotoUrl ? (
+                <img
+                  src={user.profilePhotoUrl}
+                  alt={user.username}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                (user.displayName || user.username).charAt(0).toUpperCase()
+              )}
             </div>
             <div>
               <h2 className="text-2xl font-bold mb-1">{user.displayName || user.username}</h2>
@@ -75,7 +82,8 @@ export function DiscoveryModal({
             </div>
           </div>
 
-          {/* Compatibility */}
+          {user.bio && <p className="text-gray-300 leading-relaxed mb-4">{user.bio}</p>}
+
           {user.compatibilityScore && (
             <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 mb-4">
               <div className="flex items-center justify-between mb-2">
@@ -91,10 +99,6 @@ export function DiscoveryModal({
             </div>
           )}
 
-          {/* Bio */}
-          {user.bio && <p className="text-gray-300 leading-relaxed mb-4">{user.bio}</p>}
-
-          {/* Top Artists */}
           <div>
             <p className="text-gray-400 font-medium mb-2">Top Artists</p>
             <div className="space-y-2">
@@ -103,8 +107,16 @@ export function DiscoveryModal({
                   key={i}
                   className="bg-white/10 border border-white/20 rounded-lg p-3 flex items-center gap-3"
                 >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                    {t.artist.name.charAt(0)}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                    {t.artist.imageUrl ? (
+                      <img
+                        src={t.artist.imageUrl}
+                        alt={t.artist.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      t.artist.name.charAt(0)
+                    )}
                   </div>
                   <span>{t.artist.name}</span>
                 </div>
@@ -113,20 +125,11 @@ export function DiscoveryModal({
           </div>
         </div>
 
-        {/* Footer: Connection Button */}
         <div className="p-6 border-t border-white/20 bg-white/5 backdrop-blur-md flex flex-col gap-2">
           <ConnectionButton
-            connectionStatus={
-              user.connectionStatus === 'PENDING' && user.isPendingFromThem
-                ? 'PENDING_RECEIVED'
-                : user.connectionStatus === 'PENDING'
-                ? 'PENDING_SENT'
-                : user.connectionStatus === 'ACCEPTED'
-                ? 'ACCEPTED'
-                : 'NONE'
-            }
+            connectionStatus={getConnectionStatus()}
             userId={user.id}
-            connectionId={user.id} // can replace with actual connectionId if available
+            connectionId={user.connectionId ?? undefined}
             onConnect={onConnect}
             onAccept={onAcceptConnection}
             onCancel={onCancelConnection}
@@ -136,4 +139,5 @@ export function DiscoveryModal({
     </div>
   );
 }
+
 export default DiscoveryModal;
