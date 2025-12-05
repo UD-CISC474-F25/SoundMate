@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// routes/discover.tsx
+import { useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
@@ -19,31 +20,63 @@ export function FriendsDiscoveryPage() {
   const { request } = useApiClient();
 
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const [displayedUsers, setDisplayedUsers] = useState<Array<UserProfile>>([]);
 
-  // Update user in both displayed list and selected user
-  const updateUserInState = (updatedUser: Partial<UserProfile> & { id: string }) => {
-    setDisplayedUsers(users => 
-      users.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u)
-    );
-    if (selectedUser?.id === updatedUser.id) {
-      setSelectedUser(prev => prev ? { ...prev, ...updatedUser } : null);
+  const [recentUsers, setRecentUsers] = useState<Array<UserProfile>>(() => {
+    try {
+      if (typeof window === 'undefined') return [];
+      const saved = localStorage.getItem('recentUsers');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
+  });
+
+  // Helper to persist recents
+  const persistRecents = (next: Array<UserProfile>) => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('recentUsers', JSON.stringify(next));
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+    setRecentUsers(next);
   };
 
+  // Add to recents list - limited to 10 entries
+  const addToRecents = (user: UserProfile) => {
+    const next = [user, ...recentUsers.filter(r => r.id !== user.id)].slice(0, 10);
+    persistRecents(next);
+  };
+
+  // Update a user if it exists in recents
+  const updateRecentUser = (update: Partial<UserProfile> & { id: string }) => {
+    const next = recentUsers.map(u => u.id === update.id ? { ...u, ...update } : u);
+    persistRecents(next);
+  };
+
+  // Remove all recents
+  const clearRecents = () => {
+    try {
+      if (typeof window !== 'undefined') localStorage.removeItem('recentUsers');
+    } catch {}
+    setRecentUsers([]);
+  };
+
+  // Connection handlers
   const handleConnect = async (userId: string) => {
     try {
       const newConnection = await request<{ id: string }>('/connections', {
         method: 'POST',
         body: JSON.stringify({ receiverId: userId }),
       });
-      
-      // Update status to PENDING with isPendingFromThem = false (we sent it)
-      updateUserInState({ 
-        id: userId, 
-        connectionStatus: 'PENDING', 
-        isPendingFromThem: false, 
-        connectionId: newConnection.id 
+
+      // Update recents if present
+      updateRecentUser({
+        id: userId,
+        connectionStatus: 'PENDING' as const,
+        isPendingFromThem: false,
+        connectionId: newConnection.id,
       });
     } catch (err) {
       console.error('Failed to send connection request:', err);
@@ -57,16 +90,15 @@ export function FriendsDiscoveryPage() {
         method: 'PATCH',
         body: JSON.stringify({ status: 'ACCEPTED' }),
       });
-      
-      // Find all users with this connection ID and update them
-      const usersToUpdate = displayedUsers.filter(u => u.connectionId === connectionId);
-      usersToUpdate.forEach(u => 
-        updateUserInState({ 
-          id: u.id, 
-          connectionStatus: 'ACCEPTED', 
-          isPendingFromThem: false 
-        })
-      );
+
+      // Update any recents that have this connectionId
+      const next = recentUsers.map(u => u.connectionId === connectionId ? { ...u, connectionStatus: 'ACCEPTED' as const, isPendingFromThem: false } : u);
+      persistRecents(next);
+
+      // Also update selectedUser if open
+      if (selectedUser?.connectionId === connectionId) {
+        setSelectedUser(prev => prev ? { ...prev, connectionStatus: 'ACCEPTED', isPendingFromThem: false } : prev);
+      }
     } catch (err) {
       console.error('Failed to accept connection:', err);
       alert(err instanceof Error ? err.message : 'Failed to accept connection.');
@@ -78,29 +110,31 @@ export function FriendsDiscoveryPage() {
       await request(`/connections/${connectionId}`, {
         method: 'DELETE',
       });
-      
-      // Find all users with this connection ID and reset their status
-      const usersToUpdate = displayedUsers.filter(u => u.connectionId === connectionId);
-      usersToUpdate.forEach(u => 
-        updateUserInState({ 
-          id: u.id, 
-          connectionStatus: 'NONE', 
-          isPendingFromThem: false, 
-          connectionId: null 
-        })
-      );
+
+      // Reset any recents that had this connectionId
+      const next = recentUsers.map(u => u.connectionId === connectionId ? { ...u, connectionStatus: 'NONE' as const, isPendingFromThem: false, connectionId: null } : u);
+      persistRecents(next);
+
+      if (selectedUser?.connectionId === connectionId) {
+        setSelectedUser(prev => prev ? { ...prev, connectionStatus: 'NONE' as const, isPendingFromThem: false, connectionId: null } : prev);
+      }
     } catch (err) {
       console.error('Failed to cancel connection:', err);
       alert(err instanceof Error ? err.message : 'Failed to cancel connection.');
     }
   };
 
-  const handleSelectUser = (user: UserProfile) => {
-    // Update displayed users if not already there
-    if (!displayedUsers.find(u => u.id === user.id)) {
-      setDisplayedUsers(prev => [...prev, user]);
-    }
-    // Open modal with selected user
+  // Called by SearchBar when a result is clicked
+  const handleSelectUserFromSearch = (user: UserProfile) => {
+    // Save to recents and open modal
+    addToRecents(user);
+    setSelectedUser(user);
+  };
+
+  // User clicked a recent in the DiscoveryList
+  const handleClickRecent = (userId: string) => {
+    const user = recentUsers.find(u => u.id === userId);
+    if (!user) return;
     setSelectedUser(user);
   };
 
@@ -136,9 +170,9 @@ export function FriendsDiscoveryPage() {
           </p>
         </div>
 
-        {/* Integrated SearchBar Component with Connection Actions */}
+        {/* SearchBar */}
         <SearchBar
-          onSelectUser={handleSelectUser}
+          onSelectUser={handleSelectUserFromSearch}
           placeholder="Search by username, name, or interests..."
           className="mb-8"
           onConnect={handleConnect}
@@ -146,12 +180,23 @@ export function FriendsDiscoveryPage() {
           onCancel={handleCancelConnection}
         />
 
-        {/* Discovery List (if you still want to show a separate list) */}
-        {displayedUsers.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Recent Searches</h2>
+        {/* Recent Searches*/}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white">Recent Searches</h2>
+            <button
+              onClick={clearRecents}
+              className="text-sm text-red-300 hover:text-red-400 transition"
+            >
+              Clear
+            </button>
+          </div>
+
+          {recentUsers.length === 0 ? (
+            <p className="text-gray-400">You haven't searched for anyone recently.</p>
+          ) : (
             <DiscoveryList
-              users={displayedUsers.map(u => ({
+              users={recentUsers.map(u => ({
                 id: u.id,
                 profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
                 displayName: u.displayName ?? null,
@@ -162,18 +207,15 @@ export function FriendsDiscoveryPage() {
                 isPendingFromThem: u.isPendingFromThem,
                 connectionId: u.connectionId ?? null,
               }))}
-              onUserClick={(user) => {
-                const original = displayedUsers.find(u => u.id === user.id);
-                if (original) {
-                  setSelectedUser(original);
-                }
+              onUserClick={(userItem) => {
+                handleClickRecent(userItem.id);
               }}
-              onConnect={handleConnect}
-              onAcceptConnection={handleAcceptConnection}
-              onCancelConnection={handleCancelConnection}
+              onConnect={(userId) => handleConnect(userId)}
+              onAcceptConnection={(connectionId) => handleAcceptConnection(connectionId)}
+              onCancelConnection={(connectionId) => handleCancelConnection(connectionId)}
             />
-          </div>
-        )}
+          )}
+        </div>
 
         {/* User Detail Modal */}
         {selectedUser && (
@@ -190,10 +232,10 @@ export function FriendsDiscoveryPage() {
                 }
               })),
             }}
-           onClose={() => setSelectedUser(null)}
-           onConnect={handleConnect}
-           onAcceptConnection={(id) => selectedUser.connectionId ? handleAcceptConnection(id) : Promise.resolve()}
-           onCancelConnection={(id) => selectedUser.connectionId ? handleCancelConnection(id) : Promise.resolve()}
+            onClose={() => setSelectedUser(null)}
+            onConnect={handleConnect}
+            onAcceptConnection={(id) => selectedUser.connectionId ? handleAcceptConnection(id) : Promise.resolve()}
+            onCancelConnection={(id) => selectedUser.connectionId ? handleCancelConnection(id) : Promise.resolve()}
           />
         )}
       </div>
