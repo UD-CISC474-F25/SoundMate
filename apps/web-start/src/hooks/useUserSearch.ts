@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApiClient } from '../integrations/api';
 import { useDebounce } from './useDebounce';
 
@@ -16,57 +16,63 @@ export interface UserProfile {
   connectionId?: string | null;
 }
 
-interface UserSearchResponse {
-  users: UserProfile[];
-  total?: number;
-}
-
-/**
- * Hook for searching users with debounced input
- * Uses the API client for consistent auth handling
- */
 export function useUserSearch(searchQuery: string) {
   const { request, isAuthenticated, isAuthLoading } = useApiClient();
-  const [users, setUsers] = useState<UserProfile[]>([]);
+
+  const [users, setUsers] = useState<Array<UserProfile>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Debounce the user's input
+  // Debounce
   const debouncedQuery = useDebounce(searchQuery, 400);
+
+  // Track last query we fetched
+  const lastFetchedQuery = useRef("");
 
   useEffect(() => {
     let ignore = false;
 
     async function fetchUsers() {
-      // Don't fetch if not authenticated or still loading auth
-      if (!isAuthenticated || isAuthLoading) {
+      if (!isAuthenticated || isAuthLoading) return;
+
+      // If empty query → reset
+      if (!debouncedQuery.trim()) {
+        lastFetchedQuery.current = "";
+        setUsers([]);
+        setError(null);
+        setLoading(false);
         return;
       }
 
-      // Clear users if query is empty
-      if (!debouncedQuery.trim()) {
-        setLoading(false);
-        setError(null);
+      // 🚫 Already fetched this exact query → do NOT fetch again
+      if (lastFetchedQuery.current === debouncedQuery) {
         return;
-    }
+      }
 
-
+      // Otherwise → perform search
       setLoading(true);
       setError(null);
 
       try {
-        const data = await request<UserProfile[]>(
+        const data = await request<Array<UserProfile>>(
           `/users/discover?search=${encodeURIComponent(debouncedQuery)}`
         );
-        
+
         if (!ignore) {
-          // Handle both array response and object with users property
-          const userList = Array.isArray(data) ? data : (data as any).users || [];
+          const userList = Array.isArray(data)
+            ? data
+            : (data as any).users || [];
+
           setUsers(userList);
+
+          // Mark this query as fetched
+          lastFetchedQuery.current = debouncedQuery;
         }
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Unable to search users.');
+          setError(
+            err instanceof Error ? err.message : "Unable to search users."
+          );
         }
       } finally {
         if (!ignore) {
@@ -82,11 +88,11 @@ export function useUserSearch(searchQuery: string) {
     };
   }, [debouncedQuery, request, isAuthenticated, isAuthLoading]);
 
-  return { 
-    users, 
-    setUsers, 
-    loading: loading || isAuthLoading, 
+  return {
+    users,
+    setUsers,
+    loading: loading || isAuthLoading,
     error,
-    isAuthenticated 
+    isAuthenticated,
   };
 }

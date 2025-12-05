@@ -19,7 +19,7 @@ export function FriendsDiscoveryPage() {
   const { request } = useApiClient();
 
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const [displayedUsers, setDisplayedUsers] = useState<UserProfile[]>([]);
+  const [displayedUsers, setDisplayedUsers] = useState<Array<UserProfile>>([]);
 
   // Update user in both displayed list and selected user
   const updateUserInState = (updatedUser: Partial<UserProfile> & { id: string }) => {
