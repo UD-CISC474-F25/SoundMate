@@ -17,9 +17,10 @@ interface UserProfile {
 interface DiscoveryModalProps {
   user: UserProfile;
   onClose: () => void;
-  onConnect: (userId: string) => void;
-  onAcceptConnection: (connectionId: string) => void;
-  onCancelConnection: (connectionId: string) => void;
+  onConnect: (userId: string) => Promise<void>;
+  onAcceptConnection: (connectionId: string) => Promise<void>;
+  onCancelConnection: (connectionId: string) => Promise<void>;
+
 }
 
 export function DiscoveryModal({

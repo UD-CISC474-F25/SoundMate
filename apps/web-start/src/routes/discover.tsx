@@ -190,10 +190,10 @@ export function FriendsDiscoveryPage() {
                 }
               })),
             }}
-            onClose={() => setSelectedUser(null)}
-            onConnect={handleConnect}
-            onAcceptConnection={selectedUser.connectionId ? handleAcceptConnection : undefined}
-            onCancelConnection={selectedUser.connectionId ? handleCancelConnection : undefined}
+           onClose={() => setSelectedUser(null)}
+           onConnect={handleConnect}
+           onAcceptConnection={(id) => selectedUser.connectionId ? handleAcceptConnection(id) : Promise.resolve()}
+           onCancelConnection={(id) => selectedUser.connectionId ? handleCancelConnection(id) : Promise.resolve()}
           />
         )}
       </div>

@@ -16,9 +16,10 @@ type User = {
 
 type DiscoveryListProps = {
   users: Array<User>;
-  onConnect: (userId: string) => void;
-  onAcceptConnection: (connectionId: string) => void;
-  onCancelConnection: (connectionId: string) => void;
+  onConnect: (userId: string) => Promise<void>;
+  onAcceptConnection: (connectionId: string) => Promise<void>;
+  onCancelConnection: (connectionId: string) => Promise<void>;
+
   onUserClick?: (user: User) => void;
 };
 

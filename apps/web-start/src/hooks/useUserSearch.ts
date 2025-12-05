@@ -45,11 +45,11 @@ export function useUserSearch(searchQuery: string) {
 
       // Clear users if query is empty
       if (!debouncedQuery.trim()) {
-        setUsers([]);
         setLoading(false);
         setError(null);
         return;
-      }
+    }
+
 
       setLoading(true);
       setError(null);
