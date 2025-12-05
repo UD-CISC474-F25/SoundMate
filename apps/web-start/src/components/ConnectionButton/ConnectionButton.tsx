@@ -1,5 +1,5 @@
 import React from "react";
-import { UserPlus, Clock, Check, X, Users } from "lucide-react";
+import { Check, Clock, UserPlus, Users, X } from "lucide-react";
 
 type Props = {
   connectionStatus: "NONE" | "PENDING_SENT" | "PENDING_RECEIVED" | "ACCEPTED";
