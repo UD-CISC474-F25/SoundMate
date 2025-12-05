@@ -33,6 +33,7 @@ export function DiscoveryModal({
   const detailsRef = useRef<HTMLDivElement>(null);
   const [modalHeight, setModalHeight] = useState<number | null>(null);
 
+  // Convert API values → ConnectionButton values
   const getConnectionStatus = () => {
     if (user.connectionStatus === 'ACCEPTED') return 'ACCEPTED';
     if (user.connectionStatus === 'PENDING') {

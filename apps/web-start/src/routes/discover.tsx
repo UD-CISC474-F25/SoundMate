@@ -170,7 +170,7 @@ export function FriendsDiscoveryPage() {
           </p>
         </div>
 
-        {/* SearchBar */}
+        {/* Search Bar */}
         <SearchBar
           onSelectUser={handleSelectUserFromSearch}
           placeholder="Search by username, name, or interests..."
@@ -180,7 +180,7 @@ export function FriendsDiscoveryPage() {
           onCancel={handleCancelConnection}
         />
 
-        {/* Recent Searches*/}
+        {/* Recent Searches */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-white">Recent Searches</h2>

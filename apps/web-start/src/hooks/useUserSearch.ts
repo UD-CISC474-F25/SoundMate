@@ -23,7 +23,7 @@ export function useUserSearch(searchQuery: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Debounce
+  // Debounce Function
   const debouncedQuery = useDebounce(searchQuery, 400);
 
   // Track last query we fetched
@@ -44,7 +44,7 @@ export function useUserSearch(searchQuery: string) {
         return;
       }
 
-      // 🚫 Already fetched this exact query → do NOT fetch again
+      // Fetched this exact query → don't fetch again
       if (lastFetchedQuery.current === debouncedQuery) {
         return;
       }

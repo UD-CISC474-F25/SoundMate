@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /**
+ * Used ChatGPT to generate this hook:
  * Debounces a value by delaying updates until after a specified delay
  * @param value - The value to debounce
  * @param delay - The delay in milliseconds
@@ -24,5 +25,5 @@ export function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// Also export as default for compatibility
+// Export as default for compatibility
 export default useDebounce;
