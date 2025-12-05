@@ -1,92 +1,116 @@
 import { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { Search, X } from 'lucide-react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
 import { TypewriterText } from '../components/Animations';
 import DiscoveryList from '../components/DiscoveryList/DiscoveryList';
 import DiscoveryModal from '../components/DiscoveryList/DiscoveryModal';
-import { useUserSearch } from '../components/SearchBar/useUserSearch';
+import SearchBar from '../components/SearchBar/SearchBar';
+import { useApiClient } from '../integrations/api';
+import type { UserProfile } from '../hooks/useUserSearch';
 
 export const Route = createFileRoute('/discover')({
   component: FriendsDiscoveryPage,
 });
 
-interface UserProfile {
-  id: string;
-  username: string;
-  displayName: string | null;
-  profilePhotoUrl: string | null;
-  avatar?: string | null;
-  bio: string | null;
-  topArtists?: Array<{ artist: { name: string; imageUrl?: string | null } }>;
-  connectionStatus?: 'PENDING' | 'ACCEPTED' | 'NONE';
-  isPendingFromThem?: boolean;
-  compatibilityScore?: number;
-  connectionId?: string | null;
-}
-
 export function FriendsDiscoveryPage() {
-  const { isAuthenticated, isLoading: authLoading, loginWithRedirect, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, isLoading: authLoading } = useAuth0();
   const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
+  const { request } = useApiClient();
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [displayedUsers, setDisplayedUsers] = useState<UserProfile[]>([]);
 
-  const { users, setUsers, loading, error } = useUserSearch(searchQuery, getAccessTokenSilently);
-
+  // Update user in both displayed list and selected user
   const updateUserInState = (updatedUser: Partial<UserProfile> & { id: string }) => {
-    setUsers(users.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
+    setDisplayedUsers(users => 
+      users.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u)
+    );
     if (selectedUser?.id === updatedUser.id) {
-      setSelectedUser({ ...selectedUser, ...updatedUser });
+      setSelectedUser(prev => prev ? { ...prev, ...updatedUser } : null);
     }
   };
 
   const handleConnect = async (userId: string) => {
     try {
-      const token = await getAccessTokenSilently();
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/connections`, {
+      const newConnection = await request<{ id: string }>('/connections', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ receiverId: userId }),
       });
-      if (!res.ok) throw new Error('Failed to send connection request');
-      const newConnection = await res.json();
-      updateUserInState({ id: userId, connectionStatus: 'PENDING', isPendingFromThem: false, connectionId: newConnection.id });
-    } catch {
-      alert('Failed to send connection request.');
+      
+      // Update status to PENDING with isPendingFromThem = false (we sent it)
+      updateUserInState({ 
+        id: userId, 
+        connectionStatus: 'PENDING', 
+        isPendingFromThem: false, 
+        connectionId: newConnection.id 
+      });
+    } catch (err) {
+      console.error('Failed to send connection request:', err);
+      alert(err instanceof Error ? err.message : 'Failed to send connection request.');
     }
   };
 
   const handleAcceptConnection = async (connectionId: string) => {
     try {
-      const token = await getAccessTokenSilently();
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/connections/${connectionId}`, {
+      await request(`/connections/${connectionId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: 'ACCEPTED' }),
       });
-      if (!res.ok) throw new Error('Failed to accept connection');
-      const updatedUsers = users.filter(u => u.connectionId === connectionId);
-      updatedUsers.forEach(u => updateUserInState({ id: u.id, connectionStatus: 'ACCEPTED', isPendingFromThem: false }));
-    } catch {
-      alert('Failed to accept connection.');
+      
+      // Find all users with this connection ID and update them
+      const usersToUpdate = displayedUsers.filter(u => u.connectionId === connectionId);
+      usersToUpdate.forEach(u => 
+        updateUserInState({ 
+          id: u.id, 
+          connectionStatus: 'ACCEPTED', 
+          isPendingFromThem: false 
+        })
+      );
+    } catch (err) {
+      console.error('Failed to accept connection:', err);
+      alert(err instanceof Error ? err.message : 'Failed to accept connection.');
     }
   };
 
   const handleCancelConnection = async (connectionId: string) => {
     try {
-      const token = await getAccessTokenSilently();
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/connections/${connectionId}`, {
+      await request(`/connections/${connectionId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Failed to cancel connection');
-      const updatedUsers = users.filter(u => u.connectionId === connectionId);
-      updatedUsers.forEach(u => updateUserInState({ id: u.id, connectionStatus: 'NONE', isPendingFromThem: false, connectionId: null }));
-    } catch {
-      alert('Failed to cancel connection.');
+      
+      // Find all users with this connection ID and reset their status
+      const usersToUpdate = displayedUsers.filter(u => u.connectionId === connectionId);
+      usersToUpdate.forEach(u => 
+        updateUserInState({ 
+          id: u.id, 
+          connectionStatus: 'NONE', 
+          isPendingFromThem: false, 
+          connectionId: null 
+        })
+      );
+    } catch (err) {
+      console.error('Failed to cancel connection:', err);
+      alert(err instanceof Error ? err.message : 'Failed to cancel connection.');
     }
+  };
+
+  const handleSelectUser = (user: UserProfile) => {
+    // Update displayed users if not already there
+    if (!displayedUsers.find(u => u.id === user.id)) {
+      setDisplayedUsers(prev => [...prev, user]);
+    }
+    // Open modal with selected user
+    setSelectedUser(user);
+  };
+
+  // Map connection status for DiscoveryList compatibility
+  const getConnectionStatusForList = (user: UserProfile) => {
+    if (user.connectionStatus === 'ACCEPTED') return 'ACCEPTED';
+    if (user.connectionStatus === 'PENDING') {
+      return user.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT';
+    }
+    return 'NONE';
   };
 
   if (authLoading || !isAuthenticated || isCheckingOnboarding || needsOnboarding) {
@@ -112,67 +136,46 @@ export function FriendsDiscoveryPage() {
           </p>
         </div>
 
-        <div className="mb-6">
-          <div className="relative">
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 -z-1" />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={20} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by username, name, or interests..."
-              className="w-full pl-12 pr-12 py-3 bg-transparent text-white placeholder-gray-400 rounded-xl focus:outline-none"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-            )}
-          </div>
-        </div>
+        {/* Integrated SearchBar Component with Connection Actions */}
+        <SearchBar
+          onSelectUser={handleSelectUser}
+          placeholder="Search by username, name, or interests..."
+          className="mb-8"
+          onConnect={handleConnect}
+          onAccept={handleAcceptConnection}
+          onCancel={handleCancelConnection}
+        />
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-gray-400">Searching users...</p>
+        {/* Discovery List (if you still want to show a separate list) */}
+        {displayedUsers.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-white mb-4">Recent Searches</h2>
+            <DiscoveryList
+              users={displayedUsers.map(u => ({
+                id: u.id,
+                profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
+                displayName: u.displayName ?? null,
+                username: u.username,
+                bio: u.bio ?? null,
+                compatibilityScore: u.compatibilityScore,
+                connectionStatus: getConnectionStatusForList(u) as any,
+                isPendingFromThem: u.isPendingFromThem,
+                connectionId: u.connectionId ?? null,
+              }))}
+              onUserClick={(user) => {
+                const original = displayedUsers.find(u => u.id === user.id);
+                if (original) {
+                  setSelectedUser(original);
+                }
+              }}
+              onConnect={handleConnect}
+              onAcceptConnection={handleAcceptConnection}
+              onCancelConnection={handleCancelConnection}
+            />
           </div>
-        ) : error ? (
-          <p className="text-red-400 text-center py-12">{error}</p>
-        ) : (
-          <DiscoveryList
-            users={users.map(u => ({
-              id: u.id,
-              profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
-              displayName: u.displayName ?? null,
-              username: u.username,
-              bio: u.bio ?? null,
-              compatibilityScore: u.compatibilityScore,
-              connectionStatus: u.connectionStatus ?? 'NONE',
-              isPendingFromThem: u.isPendingFromThem,
-              connectionId: u.connectionId ?? null,
-            }))}
-            onUserClick={(user) => {
-              const original = users.find(u => u.id === user.id) ?? null;
-              if (original) {
-                setSelectedUser({
-                  ...original,
-                  displayName: original.displayName ?? null,
-                  profilePhotoUrl: original.profilePhotoUrl ?? null,
-                  bio: original.bio ?? null,
-                });
-              } else {
-                setSelectedUser(null);
-              }
-            }}
-            onConnect={handleConnect}
-            onAcceptConnection={handleAcceptConnection}
-            onCancelConnection={handleCancelConnection}
-          />
         )}
 
+        {/* User Detail Modal */}
         {selectedUser && (
           <DiscoveryModal
             user={{
@@ -189,8 +192,8 @@ export function FriendsDiscoveryPage() {
             }}
             onClose={() => setSelectedUser(null)}
             onConnect={handleConnect}
-            onAcceptConnection={handleAcceptConnection}
-            onCancelConnection={handleCancelConnection}
+            onAcceptConnection={selectedUser.connectionId ? handleAcceptConnection : undefined}
+            onCancelConnection={selectedUser.connectionId ? handleCancelConnection : undefined}
           />
         )}
       </div>
