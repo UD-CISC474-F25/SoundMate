@@ -6,9 +6,9 @@ import { GenreCard } from "../GenreCard/GenreCard";
 type Tab = "artists" | "songs" | "genres";
 
 interface ProfileCardSwitcherProps {
-  topArtists: any[];
-  topSongs: any[];
-  topGenres: string[];
+  topArtists: Array<any>;
+  topSongs: Array<any>;
+  topGenres: Array<string>;
 }
 
 export function ProfileCardSwitcher({
