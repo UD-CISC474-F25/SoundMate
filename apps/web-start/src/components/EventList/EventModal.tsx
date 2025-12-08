@@ -4,6 +4,7 @@ import type { Event } from "../../hooks/useEvents";
 import { useEvents } from "../../hooks/useEvents";
 import { useComments } from "../../hooks/useComments";
 import { SlideFade } from "../Animations";
+import { useAuth0 } from "@auth0/auth0-react";
 
 interface EventModalProps {
   event: Event;
@@ -299,6 +300,8 @@ function EventComments({ event, setView }: EventCommentsProps) {
   } = useComments(event.id);
 
   const [content, setContent] = useState("");
+  const { user, isAuthenticated } = useAuth0();
+
 
   const postComment = async () => {
     if (!content.trim()) return;
@@ -309,38 +312,43 @@ function EventComments({ event, setView }: EventCommentsProps) {
   return (
     <div className="p-6 pb-12 flex flex-col h-full">
       <button
-  onClick={() => setView("details")}
-  className="self-start text-gray-300 hover:text-white mb-4"
->
-  ← Back
-</button>
+        onClick={() => setView("details")}
+        className="self-start text-gray-300 hover:text-white mb-4"
+      >
+        ← Back
+      </button>
 
 
       <h2 className="text-2xl font-bold mb-4">Comments</h2>
 
-<div className="flex-1 overflow-y-auto pr-2 modal-scroll">
-        {commentsLoading ? (
-          <p className="text-gray-400">Loading...</p>
-        ) : comments.length === 0 ? (
-          <p className="text-gray-400">No comments yet.</p>
-        ) : (
-          comments.map((c) => (
-            <div
-              key={c.id}
-              className="bg-white/10 border border-white/20 rounded-lg p-3 mb-3"
-            >
-              <p className="font-semibold text-sm">
-                @{c.user.displayName || c.user.username}
-              </p>
-              <p className="text-sm">{c.content}</p>
-
-              <button
-                onClick={() => deleteComment(event.id, c.id)}
-                disabled={isDeleting}
-                className="text-xs text-red-400 mt-2 hover:text-red-300"
+      <div className="flex-1 overflow-y-auto pr-2 modal-scroll">
+          {commentsLoading ? (
+            <p className="text-gray-400">Loading...</p>
+          ) : comments.length === 0 ? (
+            <p className="text-gray-400">No comments yet.</p>
+          ) : (
+            comments.map((c) => (
+              <div
+                key={c.id}
+                className="bg-white/10 border border-white/20 rounded-lg p-3 mb-3"
               >
-                Delete
-              </button>
+                
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-sm">
+                  @{c.user.displayName || c.user.username}
+                </p>
+
+                {isAuthenticated && user && c.user.auth0Id === user.sub && (
+                  <button
+                    onClick={() => deleteComment(event.id, c.id)}
+                    disabled={isDeleting}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+              <p className="text-sm mt-1">{c.content}</p>
             </div>
           ))
         )}

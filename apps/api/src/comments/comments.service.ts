@@ -39,6 +39,7 @@ export class CommentsService {
             username: true,
             displayName: true,
             profilePhotoUrl: true,
+            auth0Id: true,
           },
         },
       },
