@@ -20,8 +20,8 @@ export function ProfileCardSwitcher({
 
   const tabClasses = (active: boolean) =>
     active
-      ? "font-semibold text-white cursor-pointer transition-all"
-      : "text-gray-400 hover:text-gray-300 cursor-pointer transition-all";
+      ? "font-bold text-white cursor-pointer transition-all text-xl sm:text-2xl scale-105"
+      : "text-gray-500 hover:text-gray-300 cursor-pointer transition-all hover:scale-105";
 
   const gapMap: Record<Tab, string> = {
     artists: "gap-x-4 sm:gap-x-8 md:gap-x-16 lg:gap-x-56",
@@ -37,7 +37,7 @@ export function ProfileCardSwitcher({
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap gap-4 sm:gap-8 mb-6 text-lg sm:text-xl">
+      <div className="flex flex-wrap gap-6 sm:gap-10 mb-8 text-lg sm:text-xl">
         <p className={tabClasses(tab === "artists")} onClick={() => setTab("artists")}>
           Top Artists
         </p>
@@ -55,7 +55,7 @@ export function ProfileCardSwitcher({
             grid
             ${colMap[tab]}
             ${gapMap[tab]}
-            gap-y-6 sm:gap-y-10
+            gap-y-8 sm:gap-y-12
             max-w-6xl
             w-full
           `}
@@ -64,10 +64,12 @@ export function ProfileCardSwitcher({
             topArtists.slice(0, 6).map((artist, index) => (
               <div
                 key={artist.id}
-                className="animate-fadeIn"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="animate-fadeInScale"
+                style={{ animationDelay: `${index * 70}ms` }}
               >
-                <ArtistCard artist={artist} />
+                <div className="group">
+                  <ArtistCard artist={artist} />
+                </div>
               </div>
             ))}
 
@@ -75,10 +77,12 @@ export function ProfileCardSwitcher({
             topSongs.slice(0, 6).map((song, index) => (
               <div
                 key={song.id}
-                className="animate-fadeIn"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="animate-fadeInScale"
+                style={{ animationDelay: `${index * 70}ms` }}
               >
-                <SongCard song={song} />
+                <div className="group">
+                  <SongCard song={song} />
+                </div>
               </div>
             ))}
 
@@ -86,29 +90,29 @@ export function ProfileCardSwitcher({
             topGenres.slice(0, 8).map((genre, i) => (
               <div
                 key={i}
-                className="animate-fadeIn"
-                style={{ animationDelay: `${i * 50}ms` }}
+                className="animate-fadeInScale"
+                style={{ animationDelay: `${i * 70}ms` }}
               >
-                <GenreCard genre={genre} />
+                  <GenreCard genre={genre} />
               </div>
             ))}
         </div>
       </div>
       
       <style>{`
-        @keyframes fadeIn {
+        @keyframes fadeInScale {
           from {
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(20px) scale(0.95);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
         
-        .animate-fadeIn {
-          animation: fadeIn 0.4s ease-out forwards;
+        .animate-fadeInScale {
+          animation: fadeInScale 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           opacity: 0;
         }
       `}</style>
