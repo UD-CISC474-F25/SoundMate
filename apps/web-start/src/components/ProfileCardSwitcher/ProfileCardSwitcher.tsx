@@ -20,8 +20,8 @@ export function ProfileCardSwitcher({
 
   const tabClasses = (active: boolean) =>
     active
-      ? "font-semibold text-white cursor-pointer border-b-2 border-white/90 pb-1 transition-all"
-      : "text-gray-400 hover:text-gray-300 cursor-pointer border-b border-white/30 hover:border-white/50 pb-1 transition-all";
+      ? "font-semibold text-white cursor-pointer transition-all"
+      : "text-gray-400 hover:text-gray-300 cursor-pointer transition-all";
 
   const gapMap: Record<Tab, string> = {
     artists: "gap-x-4 sm:gap-x-8 md:gap-x-16 lg:gap-x-56",
@@ -61,21 +61,57 @@ export function ProfileCardSwitcher({
           `}
         >
           {tab === "artists" &&
-            topArtists.slice(0, 6).map((artist) => (
-              <ArtistCard key={artist.id} artist={artist} />
+            topArtists.slice(0, 6).map((artist, index) => (
+              <div
+                key={artist.id}
+                className="animate-fadeIn"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <ArtistCard artist={artist} />
+              </div>
             ))}
 
           {tab === "songs" &&
-            topSongs.slice(0, 6).map((song) => (
-              <SongCard key={song.id} song={song} />
+            topSongs.slice(0, 6).map((song, index) => (
+              <div
+                key={song.id}
+                className="animate-fadeIn"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <SongCard song={song} />
+              </div>
             ))}
 
           {tab === "genres" &&
             topGenres.slice(0, 8).map((genre, i) => (
-              <GenreCard key={i} genre={genre} />
+              <div
+                key={i}
+                className="animate-fadeIn"
+                style={{ animationDelay: `${i * 50}ms` }}
+              >
+                <GenreCard genre={genre} />
+              </div>
             ))}
         </div>
       </div>
+      
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.4s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
     </div>
   );
 }
