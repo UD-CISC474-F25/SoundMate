@@ -8,7 +8,7 @@ import DiscoveryList from '../components/DiscoveryList/DiscoveryList';
 import DiscoveryModal from '../components/DiscoveryList/DiscoveryModal';
 import SearchBar from '../components/SearchBar/SearchBar';
 import { ConnectionSection } from '../components/ConnectionSection/ConnectionSection';
-import { useApiClient } from '../integrations/api';
+import { useApiClient, useCurrentUser } from '../integrations/api';
 import type { UserProfile } from '../hooks/useUserSearch';
 import { useFriendSuggestions } from '../hooks/useFriendSuggestions';
 import { useConnections } from '../hooks/useConnections';
@@ -22,6 +22,7 @@ export function FriendsDiscoveryPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth0();
   const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
   const { request } = useApiClient();
+  const { data: currentUser } = useCurrentUser();
 
   // Auto-sync Spotify data if needed (respects 5-hour rate limit)
   const { isSyncing: isSpotifySyncing, syncMessage, shouldSync, hasSpotifyConnected } = useSpotifySync({
@@ -36,6 +37,15 @@ export function FriendsDiscoveryPage() {
   const { organized: connections, loading: connectionsLoading, refetch: refetchConnections } = useConnections();
 
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+
+  // Track connections being optimistically removed/updated
+  const [hiddenConnectionIds, setHiddenConnectionIds] = useState<Set<string>>(new Set());
+
+  // Track optimistic connection status updates across ALL lists (suggestions, connections, search)
+  const [optimisticStatusUpdates, setOptimisticStatusUpdates] = useState<Map<string, {
+    connectionStatus: 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED';
+    connectionId?: string;
+  }>>(new Map());
 
   const [recentUsers, setRecentUsers] = useState<Array<UserProfile>>(() => {
     try {
@@ -81,72 +91,132 @@ export function FriendsDiscoveryPage() {
 
   // Connection handlers
   const handleConnect = async (userId: string) => {
-    try {
-      const newConnection = await request<{ id: string }>('/connections', {
-        method: 'POST',
-        body: JSON.stringify({ receiverId: userId }),
-      });
+    // Optimistic update for ALL lists (instant UI change)
+    setOptimisticStatusUpdates(prev => {
+      const newMap = new Map(prev);
+      newMap.set(userId, { connectionStatus: 'PENDING_SENT' });
+      return newMap;
+    });
 
-      // Update recents if present
-      updateRecentUser({
-        id: userId,
-        connectionStatus: 'PENDING_SENT' as const,
-        isPendingFromThem: false,
-        connectionId: newConnection.id,
-      });
+    const newConnection = await request<{ id: string }>('/connections', {
+      method: 'POST',
+      body: JSON.stringify({ receiverId: userId }),
+    });
 
-      // Refresh data to update connection status
-      await Promise.all([refetchSuggestions(), refetchConnections()]);
-    } catch (err) {
-      console.error('Failed to send connection request:', err);
-      alert(err instanceof Error ? err.message : 'Failed to send connection request.');
-    }
+    // Update with real connectionId
+    setOptimisticStatusUpdates(prev => {
+      const newMap = new Map(prev);
+      newMap.set(userId, {
+        connectionStatus: 'PENDING_SENT',
+        connectionId: newConnection.id
+      });
+      return newMap;
+    });
+
+    // Update recents if present
+    updateRecentUser({
+      id: userId,
+      connectionStatus: 'PENDING_SENT' as const,
+      isPendingFromThem: false,
+      connectionId: newConnection.id,
+    });
+
+    // Only refetch connections (not suggestions - they're based on compatibility which doesn't change)
+    refetchConnections().catch(err =>
+      console.error('Failed to refetch after connection:', err)
+    );
+
+    return newConnection;
   };
 
   const handleAcceptConnection = async (connectionId: string) => {
-    try {
-      await request(`/connections/${connectionId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'ACCEPTED' }),
-      });
+    // Hide from pending lists immediately (optimistic)
+    setHiddenConnectionIds(prev => new Set(prev).add(connectionId));
 
-      // Update any recents that have this connectionId
-      const next = recentUsers.map(u => u.connectionId === connectionId ? { ...u, connectionStatus: 'ACCEPTED' as const, isPendingFromThem: false } : u);
-      persistRecents(next);
+    await request(`/connections/${connectionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'ACCEPTED' }),
+    });
 
-      // Also update selectedUser if open
-      if (selectedUser?.connectionId === connectionId) {
-        setSelectedUser(prev => prev ? { ...prev, connectionStatus: 'ACCEPTED', isPendingFromThem: false } : prev);
-      }
+    // Update any recents that have this connectionId
+    const next = recentUsers.map(u => u.connectionId === connectionId ? { ...u, connectionStatus: 'ACCEPTED' as const, isPendingFromThem: false } : u);
+    persistRecents(next);
 
-      // Refresh data to update connection status
-      await Promise.all([refetchSuggestions(), refetchConnections()]);
-    } catch (err) {
-      console.error('Failed to accept connection:', err);
-      alert(err instanceof Error ? err.message : 'Failed to accept connection.');
+    // Also update selectedUser if open
+    if (selectedUser?.connectionId === connectionId) {
+      setSelectedUser(prev => prev ? { ...prev, connectionStatus: 'ACCEPTED', isPendingFromThem: false } : prev);
     }
+
+    // Only refetch connections (not suggestions)
+    refetchConnections().then(() => {
+      // Clear optimistic update after refetch
+      setHiddenConnectionIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(connectionId);
+        return newSet;
+      });
+    }).catch(err =>
+      console.error('Failed to refetch after accept:', err)
+    );
   };
 
   const handleCancelConnection = async (connectionId: string) => {
-    try {
-      await request(`/connections/${connectionId}`, {
-        method: 'DELETE',
+    // Find userId from connections to update optimistic status
+    const allConnections = [
+      ...connections.pendingIncoming,
+      ...connections.pendingOutgoing,
+      ...connections.accepted,
+    ];
+    const connection = allConnections.find(c => c.id === connectionId);
+    const userId = connection ? (connection.requesterId === connection.receiverId ? connection.requesterId :
+      (connection.requester.id !== connection.receiver.id ?
+        (connection.requesterId === currentUser?.id ? connection.receiverId : connection.requesterId) : connection.requesterId)) : null;
+
+    // Hide from UI immediately (optimistic)
+    setHiddenConnectionIds(prev => new Set(prev).add(connectionId));
+
+    // Update optimistic status to NONE
+    if (userId) {
+      setOptimisticStatusUpdates(prev => {
+        const newMap = new Map(prev);
+        newMap.set(userId, { connectionStatus: 'NONE', connectionId: null });
+        return newMap;
       });
-
-      // Reset any recents that had this connectionId
-      const next = recentUsers.map(u => u.connectionId === connectionId ? { ...u, connectionStatus: 'NONE' as const, isPendingFromThem: false, connectionId: null } : u);
-      persistRecents(next);
-
-      if (selectedUser?.connectionId === connectionId) {
-        setSelectedUser(prev => prev ? { ...prev, connectionStatus: 'NONE' as const, isPendingFromThem: false, connectionId: null } : prev);
-      }
-
-      // Refresh data to update connection status
-      await Promise.all([refetchSuggestions(), refetchConnections()]);
-    } catch (err) {
-      console.error('Failed to cancel connection:', err);
-      alert(err instanceof Error ? err.message : 'Failed to cancel connection.');
     }
+
+    await request(`/connections/${connectionId}`, {
+      method: 'DELETE',
+    });
+
+    // Reset any recents that had this connectionId
+    const next = recentUsers.map(u => u.connectionId === connectionId ? { ...u, connectionStatus: 'NONE' as const, isPendingFromThem: false, connectionId: null } : u);
+    persistRecents(next);
+
+    if (selectedUser?.connectionId === connectionId) {
+      setSelectedUser(prev => prev ? { ...prev, connectionStatus: 'NONE' as const, isPendingFromThem: false, connectionId: null } : prev);
+    }
+
+    // Only refetch connections (not suggestions)
+    refetchConnections().then(() => {
+      // Clear optimistic update after refetch
+      setHiddenConnectionIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(connectionId);
+        return newSet;
+      });
+      // Keep optimistic status update for a bit longer for search results
+      setTimeout(() => {
+        if (userId) {
+          setOptimisticStatusUpdates(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(userId);
+            return newMap;
+          });
+        }
+      }, 1000);
+    }).catch(err =>
+      console.error('Failed to refetch after cancel:', err)
+    );
   };
 
   // Called by SearchBar when a result is clicked
@@ -225,9 +295,24 @@ export function FriendsDiscoveryPage() {
       }
     }
 
-    // Fetch full user profile with top artists and bio
+    // Fetch full user profile with bio
     try {
       const fullProfile = await request<any>(`/users/${userId}/profile`);
+
+      // Use sharedArtists from connection if available, otherwise fetch from profile
+      const artistsToDisplay = connection.sharedArtists && connection.sharedArtists.length > 0
+        ? connection.sharedArtists.map(artist => ({
+            artist: {
+              name: artist.name,
+              imageUrl: artist.imageUrl,
+            }
+          }))
+        : fullProfile.topArtists?.map((ta: any) => ({
+            artist: {
+              name: ta.artist.name,
+              imageUrl: ta.artist.imageUrl,
+            }
+          })) || [];
 
       const userProfile: UserProfile = {
         id: user.id,
@@ -239,18 +324,22 @@ export function FriendsDiscoveryPage() {
         connectionStatus,
         isPendingFromThem,
         connectionId: connection.id,
-        topArtists: fullProfile.topArtists?.map((ta: any) => ({
-          artist: {
-            name: ta.artist.name,
-            imageUrl: ta.artist.imageUrl,
-          }
-        })) || [],
+        topArtists: artistsToDisplay,
       };
 
       setSelectedUser(userProfile);
     } catch (err) {
       console.error('Failed to fetch full user profile:', err);
-      // Fallback to limited profile if fetch fails
+      // Fallback to limited profile if fetch fails, using sharedArtists from connection
+      const artistsToDisplay = connection.sharedArtists && connection.sharedArtists.length > 0
+        ? connection.sharedArtists.map(artist => ({
+            artist: {
+              name: artist.name,
+              imageUrl: artist.imageUrl,
+            }
+          }))
+        : [];
+
       const userProfile: UserProfile = {
         id: user.id,
         username: user.username,
@@ -261,7 +350,7 @@ export function FriendsDiscoveryPage() {
         connectionStatus,
         isPendingFromThem,
         connectionId: connection.id,
-        topArtists: [],
+        topArtists: artistsToDisplay,
       };
       setSelectedUser(userProfile);
     }
@@ -309,7 +398,7 @@ export function FriendsDiscoveryPage() {
         <ConnectionSection
           title="Pending Requests"
           description="People who want to connect with you"
-          connections={connections.pendingIncoming}
+          connections={connections.pendingIncoming.filter(c => !hiddenConnectionIds.has(c.id))}
           type="incoming"
           countColor="yellow"
           onAcceptConnection={handleAcceptConnection}
@@ -321,7 +410,7 @@ export function FriendsDiscoveryPage() {
         <ConnectionSection
           title="Sent Invitations"
           description="Friend requests you've sent"
-          connections={connections.pendingOutgoing}
+          connections={connections.pendingOutgoing.filter(c => !hiddenConnectionIds.has(c.id))}
           type="outgoing"
           countColor="blue"
           onCancelConnection={handleCancelConnection}
@@ -332,7 +421,7 @@ export function FriendsDiscoveryPage() {
         <ConnectionSection
           title="Friends"
           description="Your connected friends"
-          connections={connections.accepted}
+          connections={connections.accepted.filter(c => !hiddenConnectionIds.has(c.id))}
           type="friends"
           countColor="green"
           onCancelConnection={handleCancelConnection}
@@ -361,9 +450,14 @@ export function FriendsDiscoveryPage() {
             <DiscoveryList
               users={suggestions.map(s => {
                 const user = s.user as any;
-                const finalConnectionStatus = user.connectionStatus === 'PENDING'
-                  ? (user.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT')
-                  : (user.connectionStatus || 'NONE');
+
+                // Check for optimistic update first
+                const optimisticUpdate = optimisticStatusUpdates.get(user.id);
+                const finalConnectionStatus = optimisticUpdate
+                  ? optimisticUpdate.connectionStatus
+                  : (user.connectionStatus === 'PENDING'
+                    ? (user.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT')
+                    : (user.connectionStatus || 'NONE'));
 
                 return {
                   id: user.id,
@@ -374,7 +468,8 @@ export function FriendsDiscoveryPage() {
                   compatibilityScore: s.compatibilityScore,
                   connectionStatus: finalConnectionStatus as any,
                   isPendingFromThem: user.isPendingFromThem || false,
-                  connectionId: user.connectionId || null,
+                  connectionId: optimisticUpdate?.connectionId ?? (user.connectionId || null),
+                  sharedArtists: s.sharedArtists?.map(a => ({ id: a.id, name: a.name, imageUrl: a.imageUrl })) || [],
                 };
               })}
               onUserClick={(userItem) => {

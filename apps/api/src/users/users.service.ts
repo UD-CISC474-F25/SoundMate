@@ -233,11 +233,47 @@ export class UsersService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Return users without compatibility scores for search
-    // Real compatibility scores are calculated by the MatchingService for suggestions
-    return users.map((user) => ({
-      ...user,
-      compatibilityScore: undefined, // No score for search results
-    }));
+    // Fetch all connections for the current user to determine connection status
+    const connections = await this.prisma.connection.findMany({
+      where: {
+        OR: [
+          { requesterId: currentUserId },
+          { receiverId: currentUserId },
+        ],
+      },
+      select: {
+        id: true,
+        requesterId: true,
+        receiverId: true,
+        status: true,
+      },
+    });
+
+    // Create a map of userId -> connection info for quick lookup
+    const connectionMap = new Map<string, { connectionId: string; status: string; isPendingFromThem: boolean }>();
+
+    connections.forEach((conn) => {
+      const otherUserId = conn.requesterId === currentUserId ? conn.receiverId : conn.requesterId;
+      const isPendingFromThem = conn.receiverId === currentUserId && conn.status === 'PENDING';
+
+      connectionMap.set(otherUserId, {
+        connectionId: conn.id,
+        status: conn.status,
+        isPendingFromThem,
+      });
+    });
+
+    // Return users with connection status information
+    return users.map((user) => {
+      const connectionInfo = connectionMap.get(user.id);
+
+      return {
+        ...user,
+        compatibilityScore: undefined, // No score for search results
+        connectionStatus: connectionInfo?.status || 'NONE',
+        isPendingFromThem: connectionInfo?.isPendingFromThem || false,
+        connectionId: connectionInfo?.connectionId || null,
+      };
+    });
   }
 }

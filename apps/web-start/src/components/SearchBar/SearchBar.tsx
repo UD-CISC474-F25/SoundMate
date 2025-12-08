@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Search, X } from "lucide-react";
 import { useUserSearch } from "../../hooks/useUserSearch";
-import { useApiClient } from "../../integrations/api";
 import ConnectionButton from "../ConnectionButton/ConnectionButton";
 import { getUserConnectionStatus } from "../../utils/connectionUtils";
 import type { UserProfile } from "../../hooks/useUserSearch";
@@ -10,9 +9,9 @@ interface SearchBarProps {
   onSelectUser?: (user: UserProfile) => void;
   placeholder?: string;
   className?: string;
-  onConnect: (userId: string) => void;
-  onAccept: (connectionId: string) => void;
-  onCancel: (connectionId: string) => void;
+  onConnect: (userId: string) => Promise<any>;
+  onAccept: (connectionId: string) => Promise<any>;
+  onCancel: (connectionId: string) => Promise<any>;
 }
 
 export default function SearchBar({
@@ -24,64 +23,96 @@ export default function SearchBar({
   onCancel,
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
-  const { users, setUsers, loading, error } = useUserSearch(query);
-  const { request } = useApiClient();
+  const { users, loading, error } = useUserSearch(query);
+
+  // Track optimistic connection status updates that persist across searches
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Map<string, {
+    connectionStatus: 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED';
+    connectionId?: string | null;
+  }>>(new Map());
 
   // Handler wrappers to update local state after actions
   const handleConnect = async (userId: string) => {
-    try {
-      // Make the API request directly to capture the connection ID
-      const newConnection = await request<{ id: string }>('/connections', {
-        method: 'POST',
-        body: JSON.stringify({ receiverId: userId }),
-      });
+    // Store optimistic update in persistent map (immediate UI update)
+    setOptimisticUpdates(prev => {
+      const newMap = new Map(prev);
+      newMap.set(userId, { connectionStatus: 'PENDING_SENT' });
+      return newMap;
+    });
 
-      // Update local state to reflect the new connection status with the connection ID
-      setUsers(users.map(user =>
-        user.id === userId
-          ? {
-              ...user,
-              connectionStatus: 'PENDING_SENT' as const,
-              isPendingFromThem: false,
-              connectionId: newConnection.id
-            }
-          : user
-      ));
-
-      // Also call parent's onConnect to refresh parent data
-      await onConnect(userId);
-    } catch (err) {
+    // Call parent handler and get the real connectionId
+    onConnect(userId).then((result: any) => {
+      // Update with real connectionId from server
+      if (result && result.id) {
+        setOptimisticUpdates(prev => {
+          const newMap = new Map(prev);
+          newMap.set(userId, {
+            connectionStatus: 'PENDING_SENT',
+            connectionId: result.id
+          });
+          return newMap;
+        });
+      }
+    }).catch(err => {
       console.error('Failed to send connection request:', err);
+      // Revert optimistic update on error
+      setOptimisticUpdates(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(userId);
+        return newMap;
+      });
       alert(err instanceof Error ? err.message : 'Failed to send connection request.');
-    }
+    });
   };
 
   const handleAccept = async (connectionId: string) => {
-    try {
-      await onAccept(connectionId);
-      // Update local state to reflect accepted connection
-      setUsers(users.map(user =>
-        user.connectionId === connectionId
-          ? { ...user, connectionStatus: 'ACCEPTED' as const, isPendingFromThem: false }
-          : user
-      ));
-    } catch (err) {
-      console.error('Failed to accept connection:', err);
+    // Find the user with this connectionId and update optimistically
+    const user = users.find(u => u.connectionId === connectionId);
+    if (user) {
+      setOptimisticUpdates(prev => {
+        const newMap = new Map(prev);
+        newMap.set(user.id, { connectionStatus: 'ACCEPTED', connectionId });
+        return newMap;
+      });
     }
+
+    // Call parent handler in background
+    onAccept(connectionId).catch(err => {
+      console.error('Failed to accept connection:', err);
+      // Revert on error
+      if (user) {
+        setOptimisticUpdates(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(user.id);
+          return newMap;
+        });
+      }
+    });
   };
 
   const handleCancel = async (connectionId: string) => {
-    try {
-      await onCancel(connectionId);
-      // Update local state to reflect cancelled connection
-      setUsers(users.map(user =>
-        user.connectionId === connectionId
-          ? { ...user, connectionStatus: 'NONE' as const, isPendingFromThem: false, connectionId: null }
-          : user
-      ));
-    } catch (err) {
-      console.error('Failed to cancel connection:', err);
+    // Find the user with this connectionId and update optimistically
+    const user = users.find(u => u.connectionId === connectionId);
+    if (user) {
+      setOptimisticUpdates(prev => {
+        const newMap = new Map(prev);
+        newMap.set(user.id, { connectionStatus: 'NONE', connectionId: null });
+        return newMap;
+      });
     }
+
+    // Call parent handler in background
+    onCancel(connectionId).catch(err => {
+      console.error('Failed to cancel connection:', err);
+      // Revert on error
+      if (user) {
+        setOptimisticUpdates(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(user.id);
+          return newMap;
+        });
+      }
+    });
   };
 
   const handleClearSearch = () => {
@@ -142,31 +173,39 @@ export default function SearchBar({
           {/* User Results */}
           {!error && users.length > 0 && (
             <ul className="space-y-3">
-              {users.map((user) => (
-                <li
-                  key={user.id}
-                  className="p-4 rounded-xl bg-white/5 hover:bg-white/10 active:bg-white/15 
-                  transition-all duration-200 border border-white/10 hover:border-white/20 
+              {users.map((user) => {
+                // Apply optimistic updates if they exist
+                const optimisticUpdate = optimisticUpdates.get(user.id);
+                const displayUser = optimisticUpdate ? {
+                  ...user,
+                  connectionStatus: optimisticUpdate.connectionStatus,
+                  connectionId: optimisticUpdate.connectionId ?? user.connectionId,
+                } : user;
+
+                return (<li
+                  key={displayUser.id}
+                  className="p-4 rounded-xl bg-white/5 hover:bg-white/10 active:bg-white/15
+                  transition-all duration-200 border border-white/10 hover:border-white/20
                   hover:shadow-lg group"
                 >
                   <div
                     className="flex items-center gap-4 cursor-pointer mb-3"
-                    onClick={() => onSelectUser?.(user)}
+                    onClick={() => onSelectUser?.(displayUser)}
                   >
-                    {(user.avatar || user.profilePhotoUrl) ? (
+                    {(displayUser.avatar || displayUser.profilePhotoUrl) ? (
                       <img
-                        src={user.avatar || user.profilePhotoUrl || ""}
-                        alt={user.displayName || user.username}
-                        className="w-16 h-16 rounded-full object-cover flex-shrink-0 
+                        src={displayUser.avatar || displayUser.profilePhotoUrl || ""}
+                        alt={displayUser.displayName || displayUser.username}
+                        className="w-16 h-16 rounded-full object-cover flex-shrink-0
                         ring-2 ring-white/10 group-hover:ring-white/30 transition-all duration-200"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br 
-                      from-purple-500 to-pink-500 flex items-center justify-center 
-                      flex-shrink-0 ring-2 ring-white/10 group-hover:ring-white/30 
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br
+                      from-purple-500 to-pink-500 flex items-center justify-center
+                      flex-shrink-0 ring-2 ring-white/10 group-hover:ring-white/30
                       transition-all duration-200">
                         <span className="text-white font-bold text-2xl">
-                          {(user.displayName || user.username)
+                          {(displayUser.displayName || displayUser.username)
                             .charAt(0)
                             .toUpperCase()}
                         </span>
@@ -175,32 +214,32 @@ export default function SearchBar({
 
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-white text-lg truncate group-hover:text-white/90">
-                        {user.displayName || user.username}
+                        {displayUser.displayName || displayUser.username}
                       </p>
                       <p className="text-gray-400 text-base truncate">
-                        @{user.username}
+                        @{displayUser.username}
                       </p>
                     </div>
 
-                    {user.compatibilityScore !== undefined && (
-                      <div className="text-green-400 text-base font-semibold 
+                    {displayUser.compatibilityScore !== undefined && (
+                      <div className="text-green-400 text-base font-semibold
                       flex-shrink-0 bg-green-400/10 px-4 py-2 rounded-full">
-                        {user.compatibilityScore}% match
+                        {displayUser.compatibilityScore}% match
                       </div>
                     )}
                   </div>
 
                   {/* Connection Button */}
                   <ConnectionButton
-                    connectionStatus={getUserConnectionStatus(user)}
-                    connectionId={user.connectionId || undefined}
-                    userId={user.id}
+                    connectionStatus={getUserConnectionStatus(displayUser)}
+                    connectionId={displayUser.connectionId || undefined}
+                    userId={displayUser.id}
                     onConnect={handleConnect}
                     onAccept={handleAccept}
                     onCancel={handleCancel}
                   />
-                </li>
-              ))}
+                </li>)
+            })}
             </ul>
           )}
 

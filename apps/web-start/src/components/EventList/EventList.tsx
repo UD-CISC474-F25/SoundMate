@@ -57,9 +57,8 @@ export function EventList({
           const goingCount = getAttendeeCount(event, 'GOING');
 
           return (
-            <RainbowStripe>
+            <RainbowStripe key={event.id}>
             <li
-              key={event.id}
               className={`bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 shadow-lg ${
                 onEventClick ? 'cursor-pointer hover:border-gray-700' : ''
               }`}

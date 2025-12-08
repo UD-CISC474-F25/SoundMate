@@ -6,11 +6,15 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ConnectionStatusEnum } from '@repo/api';
-import { ConnectionUpdateIn } from '@repo/api'; 
+import { ConnectionUpdateIn } from '@repo/api';
+import { MatchingService } from '../matching/matching.service'; 
 
 @Injectable()
 export class ConnectionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private matchingService: MatchingService,
+  ) {}
 
   async addConnection(requesterId: string, receiverId: string) {
     if (requesterId === receiverId) {
@@ -93,46 +97,40 @@ export class ConnectionsService {
       },
     });
 
-    // Fetch shared artists for each connection
-    const connectionsWithSharedArtists = await Promise.all(
+    // Fetch shared artists and compatibility scores for each connection
+    const connectionsWithData = await Promise.all(
       connections.map(async (conn) => {
         const otherUserId = conn.requesterId === userId ? conn.receiverId : conn.requesterId;
 
-        // Find shared artists between current user and the other user
-        const [currentUserArtists, otherUserArtists] = await Promise.all([
-          this.prisma.userTopArtist.findMany({
-            where: { userId },
-            include: { artist: true },
-            orderBy: { rank: 'asc' },
-            take: 20,
-          }),
-          this.prisma.userTopArtist.findMany({
-            where: { userId: otherUserId },
-            include: { artist: true },
-            orderBy: { rank: 'asc' },
-            take: 20,
-          }),
-        ]);
+        // Calculate compatibility score using the matching service
+        const compatibility = await this.matchingService.calculateCompatibilityScore(
+          userId,
+          otherUserId,
+        );
 
-        // Find artists that appear in both lists
-        const otherUserArtistIds = new Set(otherUserArtists.map(ua => ua.artistId));
-        const sharedArtists = currentUserArtists
-          .filter(ua => otherUserArtistIds.has(ua.artistId))
-          .slice(0, 5) // Limit to 5 shared artists
-          .map(ua => ({
-            id: ua.artist.id,
-            name: ua.artist.name,
-            imageUrl: ua.artist.imageUrl,
-          }));
+        // Fetch artist details for shared artists
+        const sharedArtistIds = compatibility.details.sharedArtists;
+        const sharedArtists = await this.prisma.artist.findMany({
+          where: {
+            id: { in: sharedArtistIds },
+          },
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+          take: 5, // Limit to 5 shared artists
+        });
 
         return {
           ...conn,
           sharedArtists,
+          compatibilityScore: compatibility.score,
         };
       })
     );
 
-    return connectionsWithSharedArtists;
+    return connectionsWithData;
   }
 
   async updateConnection(

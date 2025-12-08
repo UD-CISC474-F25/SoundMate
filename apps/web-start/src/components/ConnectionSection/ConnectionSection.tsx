@@ -8,8 +8,8 @@ interface ConnectionSectionProps {
   connections: Array<Connection>;
   type: 'incoming' | 'outgoing' | 'friends';
   countColor: 'yellow' | 'blue' | 'green';
-  onAcceptConnection?: (connectionId: string) => Promise<void>;
-  onCancelConnection?: (connectionId: string) => Promise<void>;
+  onAcceptConnection?: (connectionId: string) => Promise<any>;
+  onCancelConnection?: (connectionId: string) => Promise<any>;
   onUserClick?: (userId: string) => void;
 }
 

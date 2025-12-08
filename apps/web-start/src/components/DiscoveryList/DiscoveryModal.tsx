@@ -17,9 +17,9 @@ interface UserProfile {
 interface DiscoveryModalProps {
   user: UserProfile;
   onClose: () => void;
-  onConnect: (userId: string) => Promise<void>;
-  onAcceptConnection: (connectionId: string) => Promise<void>;
-  onCancelConnection: (connectionId: string) => Promise<void>;
+  onConnect: (userId: string) => Promise<any>;
+  onAcceptConnection: (connectionId: string) => Promise<any>;
+  onCancelConnection: (connectionId: string) => Promise<any>;
 
 }
 
@@ -127,7 +127,9 @@ export function DiscoveryModal({
           )}
 
           <div>
-            <p className="text-gray-400 font-medium mb-2">Top Artists</p>
+            <p className="text-gray-400 font-medium mb-2">
+              {user.compatibilityScore !== undefined ? 'Shared Artists' : 'Top Artists'}
+            </p>
             <div className="space-y-2">
               {uniqueTopArtists.slice(0, 5).map((t) => (
                 <div

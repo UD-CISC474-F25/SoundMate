@@ -33,7 +33,7 @@ export function Navbar() {
 
   const handleLogin = () => {
     loginWithRedirect({
-      appState: { returnTo: '/discover' }
+      appState: { returnTo: '/profile' }
     });
   };
 
