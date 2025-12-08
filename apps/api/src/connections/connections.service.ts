@@ -27,6 +27,16 @@ export class ConnectionsService {
     });
 
     if (existing) {
+      // Provide specific error messages based on connection status and direction
+      if (existing.status === 'PENDING') {
+        if (existing.requesterId === requesterId) {
+          throw new BadRequestException('Already sent friend request');
+        } else {
+          throw new BadRequestException('This user already sent you a friend request. Check your pending requests.');
+        }
+      } else if (existing.status === 'ACCEPTED') {
+        throw new BadRequestException('Already friends with this user');
+      }
       throw new BadRequestException('Connection already exists');
     }
 
@@ -34,7 +44,7 @@ export class ConnectionsService {
       data: {
         requesterId,
         receiverId,
-        status: ConnectionStatusEnum.enum.PENDING, 
+        status: ConnectionStatusEnum.enum.PENDING,
       },
       include: {
         requester: {

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Trash2, Plus } from 'lucide-react';
 import { Avatar } from '../components/Avatar/Avatar';
@@ -17,6 +17,7 @@ import { useApiClient, useApiQuery } from '../integrations/api';
 import { useProfileEdit } from '../hooks/useProfileEdit';
 import { useAccountDelete } from '../hooks/useAccountDelete';
 import { useProfileLinks } from '../hooks/useProfileLinks';
+import { useSpotifySync } from '../hooks/useSpotifySync';
 import { LinkForm } from '../components/LinkForm/LinkForm';
 import { APP_CONFIG } from '../constants/app';
 import { useQueryClient } from '@tanstack/react-query';
@@ -86,29 +87,34 @@ function ProfilePage() {
   }, []);
 
   const queryClient = useQueryClient();
+  const hasPrefetched = useRef(false);
 
-useEffect(() => {
-  const ranges = ['SHORT_TERM', 'MEDIUM_TERM', 'LONG_TERM'];
+  useEffect(() => {
+    // Only prefetch once on mount
+    if (hasPrefetched.current || !isAuthenticated) return;
 
-  ranges.forEach((range) => {
-    queryClient.prefetchQuery({
-      queryKey: ['users', 'me', 'profile', range],
-      queryFn: () => request(`/users/me/profile?timeRange=${range}`),
+    hasPrefetched.current = true;
+    const ranges = ['SHORT_TERM', 'MEDIUM_TERM', 'LONG_TERM'];
+
+    ranges.forEach((range) => {
+      queryClient.prefetchQuery({
+        queryKey: ['users', 'me', 'profile', range],
+        queryFn: () => request(`/users/me/profile?timeRange=${range}`),
+        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+      });
     });
-  });
-}, [queryClient, request]);
+  }, [isAuthenticated]); // Only depend on authentication status
 
 
   const { data: user, isLoading, isError } = useApiQuery<UserProfile>(
     ['users', 'me', 'profile', selectedTimeRange],
     `/users/me/profile?timeRange=${selectedTimeRange}`
   );
-  console.log("PROFILE RESPONSE:", user);
-
 
   const profileEdit = useProfileEdit(user, selectedTimeRange);
   const accountDelete = useAccountDelete();
   const profileLinks = useProfileLinks();
+  const spotifySync = useSpotifySync();
 
   const handleConnectSpotify = async () => {
     try {
@@ -116,6 +122,16 @@ useEffect(() => {
       window.location.href = data.authUrl;
     } catch (error) {
       console.error('Failed to get Spotify auth URL:', error);
+    }
+  };
+
+  const handleSyncSpotify = async (force = false) => {
+    try {
+      await spotifySync.syncSpotify(force);
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'profile'] });
+    } catch (error) {
+      console.error('Failed to sync Spotify:', error);
     }
   };
 
@@ -228,7 +244,7 @@ useEffect(() => {
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-8">
 
             <div className="mb-6">
-              <div className="mb-3">
+              <div className="mb-3 flex items-center justify-between flex-wrap gap-3">
                 <FilterTabs
                   tabs={[
                     { value: 'SHORT_TERM', label: APP_CONFIG.TIME_RANGES.SHORT_TERM.label },
@@ -238,6 +254,24 @@ useEffect(() => {
                   activeTab={selectedTimeRange}
                   onChange={(value) => setSelectedTimeRange(value as TimeRange)}
                 />
+                {spotifySync.hasSpotifyConnected && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSyncSpotify(false)}
+                      disabled={spotifySync.isSyncing || !spotifySync.shouldSync}
+                      className="px-3 py-1.5 text-sm border border-green-500/50 text-green-400 rounded-lg hover:bg-green-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      title={spotifySync.shouldSync ? 'Sync Spotify data' : 'Sync available in ' + (spotifySync.timeUntilNextSync?.hours || 0) + 'h ' + (spotifySync.timeUntilNextSync?.minutes || 0) + 'm'}
+                    >
+                      <svg className={`w-4 h-4 ${spotifySync.isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      {spotifySync.isSyncing ? 'Syncing...' : 'Sync Spotify'}
+                    </button>
+                    {spotifySync.syncMessage && (
+                      <p className="text-xs text-gray-400">{spotifySync.syncMessage}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <p className="text-sm text-gray-400">

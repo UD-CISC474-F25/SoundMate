@@ -170,8 +170,6 @@ export class AuthController {
           await task();
         }
 
-        console.log('Successfully synced all top artists for user:', user.id);
-
       } catch (syncError) {
         console.error('Failed to sync top artists:', syncError);
       }
