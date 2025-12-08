@@ -392,9 +392,21 @@ export function FriendsDiscoveryPage() {
                 </svg>
               </div>
               <p className="text-gray-300 font-medium mb-2">No suggestions available yet</p>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-400 text-sm mb-4">
                 Connect your Spotify and sync your music to get personalized friend suggestions!
               </p>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[Discover] Refresh button clicked');
+                  refetchSuggestions();
+                }}
+                disabled={suggestionsLoading}
+                className="px-6 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-medium rounded-full transition-colors cursor-pointer"
+              >
+                {suggestionsLoading ? 'Loading...' : 'Refresh Suggestions'}
+              </button>
             </div>
           </div>
         )}
