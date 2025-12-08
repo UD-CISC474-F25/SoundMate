@@ -289,7 +289,7 @@ function ProfilePage() {
                 )}
               </div>
 
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-400 ">
                 {APP_CONFIG.TIME_RANGES[selectedTimeRange].description}
               </p>
             </div>

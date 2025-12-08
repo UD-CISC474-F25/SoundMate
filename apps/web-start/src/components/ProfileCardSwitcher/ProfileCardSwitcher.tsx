@@ -20,8 +20,8 @@ export function ProfileCardSwitcher({
 
   const tabClasses = (active: boolean) =>
     active
-      ? "font-semibold text-white cursor-pointer"
-      : "text-gray-400 hover:text-gray-300 cursor-pointer";
+      ? "font-semibold text-white cursor-pointer border-b-2 border-white/90 pb-1 transition-all"
+      : "text-gray-400 hover:text-gray-300 cursor-pointer border-b border-white/30 hover:border-white/50 pb-1 transition-all";
 
   const gapMap: Record<Tab, string> = {
     artists: "gap-x-4 sm:gap-x-8 md:gap-x-16 lg:gap-x-56",
