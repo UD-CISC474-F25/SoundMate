@@ -54,7 +54,22 @@ export function useApiClient() {
       },
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    if (!res.ok) {
+      let errorMessage = `${res.status} ${res.statusText}`;
+      try {
+        const errorBody = await res.json();
+        console.error('[API Error] Response body:', errorBody);
+        if (errorBody.message) {
+          errorMessage = errorBody.message;
+          if (Array.isArray(errorBody.message)) {
+            errorMessage = errorBody.message.join(', ');
+          }
+        }
+      } catch (e) {
+        // If response is not JSON, use status text
+      }
+      throw new Error(errorMessage);
+    }
     return (await res.json()) as T;
   };
 
@@ -76,10 +91,10 @@ export function useApiQuery<T>(
       if (error instanceof RedirectingForAuthError) return false;
       return failureCount < 3;
     },
-    // Some potential optimizations you can experiment with
-    // staleTime: 60_000, // avoid immediate refetches
-    // refetchOnWindowFocus: false, // avoid focus-triggered flicker
-    // placeholderData: (prev) => prev, // keep old data during refetch
+    // Optimizations to reduce excessive fetching
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch when component mounts if data exists
   });
   const isAuthPending = isAuthLoading || !isAuthenticated;
   const showLoading = isAuthPending || q.isLoading || q.isFetching;
@@ -137,6 +152,9 @@ export type CurrentUser = {
   id: string;
   name?: string | null;
   email?: string | null;
+  spotifyStats?: {
+    lastSyncedAt: string | null;
+  } | null;
 };
 
 export function useCurrentUser(opts?: { scope?: string }) {

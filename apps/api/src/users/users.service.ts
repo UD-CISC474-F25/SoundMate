@@ -4,7 +4,10 @@ import { SpotifyService } from '../spotify/spotify.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService, private spotifyService: SpotifyService) {}
+  constructor(
+    private prisma: PrismaService,
+    private spotifyService: SpotifyService,
+  ) {}
 
   async findAll() {
     return this.prisma.user.findMany({
@@ -104,7 +107,7 @@ export class UsersService {
       ...user,
       topArtists,
       topSongs,
-      topGenres: topGenres.map((g) => g.genre), 
+      topGenres: topGenres.map((g) => g.genre),
     };
   }
 
@@ -125,6 +128,11 @@ export class UsersService {
         createdAt: true,
         updatedAt: true,
         lastLogin: true,
+        spotifyStats: {
+          select: {
+            lastSyncedAt: true,
+          },
+        },
       },
     });
 
@@ -172,15 +180,64 @@ export class UsersService {
       where: { id: userId },
     });
 
-    if (!user) {
+     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     // Prisma will handle cascade deletes for related data (topArtists, events, etc.)
+
     await this.prisma.user.delete({
       where: { id: userId },
     });
 
     return { success: true, message: 'User account deleted successfully' };
+  }
+
+  //Discovery Method
+  async findUsersForDiscovery(currentUserId: string, search?: string) {
+    const whereClause: any = {
+      id: { not: currentUserId },
+      isOnboarded: true,
+    };
+
+    if (search) {
+      whereClause.OR = [
+        { username: { contains: search, mode: 'insensitive' } },
+        { displayName: { contains: search, mode: 'insensitive' } },
+        { bio: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        profilePhotoUrl: true,
+        bio: true,
+        topArtists: {
+          take: 5,
+          orderBy: { rank: 'asc' },
+          include: {
+            artist: {
+              select: {
+                name: true,
+                imageUrl: true,
+              },
+            },
+          },
+        },
+      },
+      take: 50,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Return users without compatibility scores for search
+    // Real compatibility scores are calculated by the MatchingService for suggestions
+    return users.map((user) => ({
+      ...user,
+      compatibilityScore: undefined, // No score for search results
+    }));
   }
 }

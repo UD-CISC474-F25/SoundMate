@@ -261,6 +261,89 @@ export default function TestingPage() {
         </form>
       </Card>
 
+      <Card title="Create Connection (Send Request)">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
+
+            callApi("POST", api("/connections"), {
+              receiverId: body.receiverId,
+            });
+          }}
+        >
+          <input
+            name="receiverId"
+            placeholder="Receiver User ID"
+            style={inputStyle}
+            required
+          />
+
+          <button style={buttonStyle}>Send Connection Request</button>
+        </form>
+      </Card>
+
+      <Card title="Get My Connections">
+        <button
+          style={buttonStyle}
+          onClick={() => callApi("GET", api("/connections"))}
+        >
+          Fetch Connections
+        </button>
+      </Card>
+
+      <Card title="Update Connection">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
+
+            callApi(
+              "PATCH",
+              api(`/connections/${body.connectionId}`),
+              { status: body.status }
+            );
+          }}
+        >
+          <input
+            name="connectionId"
+            placeholder="Connection ID"
+            style={inputStyle}
+            required
+          />
+
+          <select name="status" style={inputStyle} required>
+            <option value="PENDING">PENDING</option>
+            <option value="ACCEPTED">ACCEPTED</option>
+          </select>
+
+          <button style={buttonStyle}>Update Connection</button>
+        </form>
+      </Card>
+
+      <Card title="Delete Connection">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const body = formToObj(fd);
+
+            callApi("DELETE", api(`/connections/${body.connectionId}`));
+          }}
+        >
+          <input
+            name="connectionId"
+            placeholder="Connection ID"
+            style={inputStyle}
+            required
+          />
+
+          <button style={buttonStyle}>Delete Connection</button>
+        </form>
+      </Card>
+
       <Card title="API Response">
         <pre
           style={{

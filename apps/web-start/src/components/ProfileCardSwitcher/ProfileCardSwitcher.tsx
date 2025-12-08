@@ -24,20 +24,20 @@ export function ProfileCardSwitcher({
       : "text-gray-400 hover:text-gray-300 cursor-pointer";
 
   const gapMap: Record<Tab, string> = {
-    artists: "gap-x-56",
-    songs: "gap-x-32",
-    genres: "gap-x-24",
+    artists: "gap-x-4 sm:gap-x-8 md:gap-x-16 lg:gap-x-56",
+    songs: "gap-x-4 sm:gap-x-6 md:gap-x-12 lg:gap-x-32",
+    genres: "gap-x-3 sm:gap-x-4 md:gap-x-8 lg:gap-x-24",
   };
 
   const colMap: Record<Tab, string> = {
-    artists: "grid-cols-2 sm:grid-cols-3",
-    songs: "grid-cols-2 sm:grid-cols-3",
-    genres: "grid-cols-2 sm:grid-cols-4", 
+    artists: "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3",
+    songs: "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3",
+    genres: "grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4",
   };
 
   return (
     <div className="w-full">
-      <div className="flex gap-8 mb-6 text-xl">
+      <div className="flex flex-wrap gap-4 sm:gap-8 mb-6 text-lg sm:text-xl">
         <p className={tabClasses(tab === "artists")} onClick={() => setTab("artists")}>
           Top Artists
         </p>
@@ -55,8 +55,9 @@ export function ProfileCardSwitcher({
             grid
             ${colMap[tab]}
             ${gapMap[tab]}
-            gap-y-10
+            gap-y-6 sm:gap-y-10
             max-w-6xl
+            w-full
           `}
         >
           {tab === "artists" &&

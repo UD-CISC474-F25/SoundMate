@@ -62,6 +62,16 @@ export class UsersController {
     return this.usersService.deleteUser(user.id);
   }
 
+  @Get('discover')
+  @UseGuards(JwtAuthGuard)
+  async discoverUsers(
+    @CurrentUser() jwtUser: JwtUser,
+    @Query('search') search?: string,
+  ) {
+    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    return this.usersService.findUsersForDiscovery(user.id, search);
+  }
+
   @Get()
   findAll() {
     return this.usersService.findAll();
