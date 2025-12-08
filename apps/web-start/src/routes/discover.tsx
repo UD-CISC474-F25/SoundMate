@@ -271,16 +271,6 @@ export function FriendsDiscoveryPage() {
           </p>
         </div>
 
-        {/* Search Bar */}
-        <SearchBar
-          onSelectUser={handleSelectUserFromSearch}
-          placeholder="Search by username, name, or interests..."
-          className="mb-8"
-          onConnect={handleConnect}
-          onAccept={handleAcceptConnection}
-          onCancel={handleCancelConnection}
-        />
-
         {/* FILTERS */}
         <div className="flex gap-3 mb-6">
           <button
@@ -291,12 +281,7 @@ export function FriendsDiscoveryPage() {
                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
-            Suggested Friends
-            {suggestions.length > 0 && (
-              <span className="ml-2 text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">
-                {suggestions.length}
-              </span>
-            )}
+            Discover
           </button>
           <button
             onClick={() => setFilter('pending')}
@@ -306,25 +291,10 @@ export function FriendsDiscoveryPage() {
                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
-            Pending Requests
-            {connections.pendingIncoming.length > 0 && (
+            Requests
+            {(connections.pendingIncoming.length + connections.pendingOutgoing.length) > 0 && (
               <span className="ml-2 text-xs bg-yellow-500 text-black px-2 py-0.5 rounded-full">
-                {connections.pendingIncoming.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setFilter('sent')}
-            className={`px-4 py-2 rounded-full font-medium transition-colors cursor-pointer ${
-              filter === 'sent'
-                ? 'bg-white text-black'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            Sent Invitations
-            {connections.pendingOutgoing.length > 0 && (
-              <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
-                {connections.pendingOutgoing.length}
+                {connections.pendingIncoming.length + connections.pendingOutgoing.length}
               </span>
             )}
           </button>
@@ -349,6 +319,17 @@ export function FriendsDiscoveryPage() {
         {filter === 'suggestions' && (
           <>
         {/* Friend Suggestions */}
+        
+        {/* Search Bar */}
+        <SearchBar
+          onSelectUser={handleSelectUserFromSearch}
+          placeholder="Search by username, name, or interests..."
+          className="mb-8"
+          onConnect={handleConnect}
+          onAccept={handleAcceptConnection}
+          onCancel={handleCancelConnection}
+        />
+
         {!suggestionsLoading && suggestions.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -427,32 +408,73 @@ export function FriendsDiscoveryPage() {
                 </div>
               </div>
             )}
+            
+            {/* Recent Searches */}
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-white">Recent Searches</h2>
+                {recentUsers.length > 0 && (
+                  <button
+                    onClick={clearRecents}
+                    className="text-sm text-red-300 hover:text-red-400 transition"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {recentUsers.length === 0 ? (
+                <p className="text-gray-400">You haven't searched for anyone recently.</p>
+              ) : (
+                <DiscoveryList
+                  users={recentUsers.map(u => ({
+                    id: u.id,
+                    profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
+                    displayName: u.displayName ?? null,
+                    username: u.username,
+                    bio: u.bio ?? null,
+                    compatibilityScore: u.compatibilityScore,
+                    connectionStatus: getConnectionStatusForList(u) as any,
+                    isPendingFromThem: u.isPendingFromThem,
+                    connectionId: u.connectionId ?? null,
+                  }))}
+                  onUserClick={(userItem) => {
+                    handleClickRecent(userItem.id);
+                  }}
+                  onConnect={(userId) => handleConnect(userId)}
+                  onAcceptConnection={(connectionId) => handleAcceptConnection(connectionId)}
+                  onCancelConnection={(connectionId) => handleCancelConnection(connectionId)}
+                />
+              )}
+            </div>
           </>
         )}
 
         {filter === 'pending' && (
-          <ConnectionSection
-            title="Pending Requests"
-            description="People who want to connect with you"
-            connections={connections.pendingIncoming}
-            type="incoming"
-            countColor="yellow"
-            onAcceptConnection={handleAcceptConnection}
-            onCancelConnection={handleCancelConnection}
-            onUserClick={handleClickConnection}
-          />
-        )}
+          <>
+            <ConnectionSection
+              title="Pending Requests"
+              description="People who want to connect with you"
+              connections={connections.pendingIncoming}
+              type="incoming"
+              countColor="yellow"
+              onAcceptConnection={handleAcceptConnection}
+              onCancelConnection={handleCancelConnection}
+              onUserClick={handleClickConnection}
+            />
 
-        {filter === 'sent' && (
-          <ConnectionSection
-            title="Sent Invitations"
-            description="Friend requests you've sent"
-            connections={connections.pendingOutgoing}
-            type="outgoing"
-            countColor="blue"
-            onCancelConnection={handleCancelConnection}
-            onUserClick={handleClickConnection}
-          />
+            <div className="mt-8">
+              <ConnectionSection
+                title="Sent Invitations"
+                description="Friend requests you've sent"
+                connections={connections.pendingOutgoing}
+                type="outgoing"
+                countColor="blue"
+                onCancelConnection={handleCancelConnection}
+                onUserClick={handleClickConnection}
+              />
+            </div>
+          </>
         )}
 
         {filter === 'friends' && (
@@ -466,45 +488,6 @@ export function FriendsDiscoveryPage() {
             onUserClick={handleClickConnection}
           />
         )}
-
-        {/* Recent Searches - Always Visible */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-white">Recent Searches</h2>
-            {recentUsers.length > 0 && (
-              <button
-                onClick={clearRecents}
-                className="text-sm text-red-300 hover:text-red-400 transition"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          {recentUsers.length === 0 ? (
-            <p className="text-gray-400">You haven't searched for anyone recently.</p>
-          ) : (
-            <DiscoveryList
-              users={recentUsers.map(u => ({
-                id: u.id,
-                profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
-                displayName: u.displayName ?? null,
-                username: u.username,
-                bio: u.bio ?? null,
-                compatibilityScore: u.compatibilityScore,
-                connectionStatus: getConnectionStatusForList(u) as any,
-                isPendingFromThem: u.isPendingFromThem,
-                connectionId: u.connectionId ?? null,
-              }))}
-              onUserClick={(userItem) => {
-                handleClickRecent(userItem.id);
-              }}
-              onConnect={(userId) => handleConnect(userId)}
-              onAcceptConnection={(connectionId) => handleAcceptConnection(connectionId)}
-              onCancelConnection={(connectionId) => handleCancelConnection(connectionId)}
-            />
-          )}
-        </div>
 
         {/* User Detail Modal */}
         {selectedUser && (
