@@ -68,7 +68,7 @@ export class ConnectionsService {
   }
 
   async getConnectionsForUser(userId: string) {
-    return this.prisma.connection.findMany({
+    const connections = await this.prisma.connection.findMany({
       where: {
         OR: [{ requesterId: userId }, { receiverId: userId }],
       },
@@ -92,6 +92,47 @@ export class ConnectionsService {
         },
       },
     });
+
+    // Fetch shared artists for each connection
+    const connectionsWithSharedArtists = await Promise.all(
+      connections.map(async (conn) => {
+        const otherUserId = conn.requesterId === userId ? conn.receiverId : conn.requesterId;
+
+        // Find shared artists between current user and the other user
+        const [currentUserArtists, otherUserArtists] = await Promise.all([
+          this.prisma.userTopArtist.findMany({
+            where: { userId },
+            include: { artist: true },
+            orderBy: { rank: 'asc' },
+            take: 20,
+          }),
+          this.prisma.userTopArtist.findMany({
+            where: { userId: otherUserId },
+            include: { artist: true },
+            orderBy: { rank: 'asc' },
+            take: 20,
+          }),
+        ]);
+
+        // Find artists that appear in both lists
+        const otherUserArtistIds = new Set(otherUserArtists.map(ua => ua.artistId));
+        const sharedArtists = currentUserArtists
+          .filter(ua => otherUserArtistIds.has(ua.artistId))
+          .slice(0, 5) // Limit to 5 shared artists
+          .map(ua => ({
+            id: ua.artist.id,
+            name: ua.artist.name,
+            imageUrl: ua.artist.imageUrl,
+          }));
+
+        return {
+          ...conn,
+          sharedArtists,
+        };
+      })
+    );
+
+    return connectionsWithSharedArtists;
   }
 
   async updateConnection(

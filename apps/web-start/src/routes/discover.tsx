@@ -193,7 +193,7 @@ export function FriendsDiscoveryPage() {
   };
 
   // User clicked a connection (friend, pending request, etc.)
-  const handleClickConnection = (userId: string) => {
+  const handleClickConnection = async (userId: string) => {
     // Find the connection in any of the three lists
     const allConnections = [
       ...connections.pendingIncoming,
@@ -225,20 +225,46 @@ export function FriendsDiscoveryPage() {
       }
     }
 
-    const userProfile: UserProfile = {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      profilePhotoUrl: user.profilePhotoUrl,
-      bio: null,
-      compatibilityScore: connection.compatibilityScore ?? undefined,
-      connectionStatus,
-      isPendingFromThem,
-      connectionId: connection.id,
-      topArtists: [],
-    };
+    // Fetch full user profile with top artists and bio
+    try {
+      const fullProfile = await request<any>(`/users/${userId}/profile`);
 
-    setSelectedUser(userProfile);
+      const userProfile: UserProfile = {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        profilePhotoUrl: user.profilePhotoUrl,
+        bio: fullProfile.bio,
+        compatibilityScore: connection.compatibilityScore ?? undefined,
+        connectionStatus,
+        isPendingFromThem,
+        connectionId: connection.id,
+        topArtists: fullProfile.topArtists?.map((ta: any) => ({
+          artist: {
+            name: ta.artist.name,
+            imageUrl: ta.artist.imageUrl,
+          }
+        })) || [],
+      };
+
+      setSelectedUser(userProfile);
+    } catch (err) {
+      console.error('Failed to fetch full user profile:', err);
+      // Fallback to limited profile if fetch fails
+      const userProfile: UserProfile = {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        profilePhotoUrl: user.profilePhotoUrl,
+        bio: null,
+        compatibilityScore: connection.compatibilityScore ?? undefined,
+        connectionStatus,
+        isPendingFromThem,
+        connectionId: connection.id,
+        topArtists: [],
+      };
+      setSelectedUser(userProfile);
+    }
   };
 
   // Return connection status as-is (already in correct format)

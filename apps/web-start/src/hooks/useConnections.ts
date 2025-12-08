@@ -21,6 +21,11 @@ export interface Connection {
     displayName: string | null;
     profilePhotoUrl: string | null;
   };
+  sharedArtists?: Array<{
+    id: string;
+    name: string;
+    imageUrl: string | null;
+  }>;
 }
 
 export interface OrganizedConnections {

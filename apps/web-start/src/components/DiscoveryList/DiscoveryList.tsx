@@ -12,6 +12,11 @@ type User = {
   connectionStatus?: "NONE" | "PENDING_SENT" | "PENDING_RECEIVED" | "ACCEPTED";
   isPendingFromThem?: boolean;
   connectionId?: string | null;
+  sharedArtists?: Array<{
+    id: string;
+    name: string;
+    imageUrl: string | null;
+  }>;
 };
 
 type DiscoveryListProps = {
@@ -95,6 +100,35 @@ const DiscoveryList: React.FC<DiscoveryListProps> = ({
                 <p className="text-gray-400 text-sm mb-1">@{user.username}</p>
                 {user.bio && (
                   <p className="text-gray-400 text-sm truncate">{user.bio}</p>
+                )}
+                {user.sharedArtists && user.sharedArtists.length > 0 && (
+                  <div className="flex items-center gap-1 mt-2">
+                    <span className="text-xs text-gray-400">Mutual:</span>
+                    <div className="flex -space-x-2">
+                      {user.sharedArtists.slice(0, 3).map((artist) => (
+                        <div
+                          key={artist.id}
+                          className="w-6 h-6 rounded-full overflow-hidden border-2 border-gray-900"
+                          title={artist.name}
+                        >
+                          {artist.imageUrl ? (
+                            <img
+                              src={artist.imageUrl}
+                              alt={artist.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-purple-500 flex items-center justify-center text-xs text-white">
+                              {artist.name.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {user.sharedArtists.length} {user.sharedArtists.length === 1 ? 'artist' : 'artists'}
+                    </span>
+                  </div>
                 )}
               </div>
 

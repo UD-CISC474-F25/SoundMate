@@ -31,7 +31,8 @@ export function useSpotifySync(options?: { autoSync?: boolean }) {
    * Check if sync is needed based on last sync time
    */
   const shouldSync = useCallback(() => {
-    if (!currentUser?.spotifyStats) return false;
+    // If user has no spotify stats at all, sync is needed (first time)
+    if (!currentUser?.spotifyStats) return true;
 
     const lastSync = currentUser.spotifyStats.lastSyncedAt;
     if (!lastSync) return true; // Never synced before

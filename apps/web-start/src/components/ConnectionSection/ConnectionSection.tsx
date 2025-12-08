@@ -83,10 +83,11 @@ export function ConnectionSection({
             connectionStatus,
             isPendingFromThem: type === 'incoming',
             connectionId: conn.id,
+            sharedArtists: conn.sharedArtists || [],
           };
         })}
         onUserClick={(userItem) => onUserClick(userItem.id)}
-        onConnect={() => {}}
+        onConnect={async () => {}}
         onAcceptConnection={onAcceptConnection}
         onCancelConnection={onCancelConnection}
       />

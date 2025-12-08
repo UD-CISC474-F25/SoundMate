@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search, X } from "lucide-react";
 import { useUserSearch } from "../../hooks/useUserSearch";
+import { useApiClient } from "../../integrations/api";
 import ConnectionButton from "../ConnectionButton/ConnectionButton";
 import { getUserConnectionStatus } from "../../utils/connectionUtils";
 import type { UserProfile } from "../../hooks/useUserSearch";
@@ -23,7 +24,65 @@ export default function SearchBar({
   onCancel,
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
-  const { users, loading, error } = useUserSearch(query);
+  const { users, setUsers, loading, error } = useUserSearch(query);
+  const { request } = useApiClient();
+
+  // Handler wrappers to update local state after actions
+  const handleConnect = async (userId: string) => {
+    try {
+      // Make the API request directly to capture the connection ID
+      const newConnection = await request<{ id: string }>('/connections', {
+        method: 'POST',
+        body: JSON.stringify({ receiverId: userId }),
+      });
+
+      // Update local state to reflect the new connection status with the connection ID
+      setUsers(users.map(user =>
+        user.id === userId
+          ? {
+              ...user,
+              connectionStatus: 'PENDING_SENT' as const,
+              isPendingFromThem: false,
+              connectionId: newConnection.id
+            }
+          : user
+      ));
+
+      // Also call parent's onConnect to refresh parent data
+      await onConnect(userId);
+    } catch (err) {
+      console.error('Failed to send connection request:', err);
+      alert(err instanceof Error ? err.message : 'Failed to send connection request.');
+    }
+  };
+
+  const handleAccept = async (connectionId: string) => {
+    try {
+      await onAccept(connectionId);
+      // Update local state to reflect accepted connection
+      setUsers(users.map(user =>
+        user.connectionId === connectionId
+          ? { ...user, connectionStatus: 'ACCEPTED' as const, isPendingFromThem: false }
+          : user
+      ));
+    } catch (err) {
+      console.error('Failed to accept connection:', err);
+    }
+  };
+
+  const handleCancel = async (connectionId: string) => {
+    try {
+      await onCancel(connectionId);
+      // Update local state to reflect cancelled connection
+      setUsers(users.map(user =>
+        user.connectionId === connectionId
+          ? { ...user, connectionStatus: 'NONE' as const, isPendingFromThem: false, connectionId: null }
+          : user
+      ));
+    } catch (err) {
+      console.error('Failed to cancel connection:', err);
+    }
+  };
 
   const handleClearSearch = () => {
     setQuery("");
@@ -136,9 +195,9 @@ export default function SearchBar({
                     connectionStatus={getUserConnectionStatus(user)}
                     connectionId={user.connectionId || undefined}
                     userId={user.id}
-                    onConnect={onConnect}
-                    onAccept={onAccept}
-                    onCancel={onCancel}
+                    onConnect={handleConnect}
+                    onAccept={handleAccept}
+                    onCancel={handleCancel}
                   />
                 </li>
               ))}
