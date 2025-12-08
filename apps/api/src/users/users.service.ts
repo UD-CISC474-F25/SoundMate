@@ -128,6 +128,11 @@ export class UsersService {
         createdAt: true,
         updatedAt: true,
         lastLogin: true,
+        spotifyStats: {
+          select: {
+            lastSyncedAt: true,
+          },
+        },
       },
     });
 
@@ -228,9 +233,11 @@ export class UsersService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Return users without compatibility scores for search
+    // Real compatibility scores are calculated by the MatchingService for suggestions
     return users.map((user) => ({
       ...user,
-      compatibilityScore: Math.floor(Math.random() * 40) + 60, // 60–100 - temporary placeholder
+      compatibilityScore: undefined, // No score for search results
     }));
   }
 }

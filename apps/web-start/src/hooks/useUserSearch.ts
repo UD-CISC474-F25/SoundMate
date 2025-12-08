@@ -10,7 +10,7 @@ export interface UserProfile {
   avatar?: string | null;
   bio: string | null;
   topArtists?: Array<{ artist: { name: string; imageUrl?: string | null } }>;
-  connectionStatus?: 'PENDING' | 'ACCEPTED' | 'NONE';
+  connectionStatus?: 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED';
   isPendingFromThem?: boolean;
   compatibilityScore?: number;
   connectionId?: string | null;
@@ -86,7 +86,8 @@ export function useUserSearch(searchQuery: string) {
     return () => {
       ignore = true;
     };
-  }, [debouncedQuery, request, isAuthenticated, isAuthLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, isAuthenticated, isAuthLoading]);
 
   return {
     users,
