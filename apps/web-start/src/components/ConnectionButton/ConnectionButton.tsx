@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, Clock, UserPlus, Users, X } from "lucide-react";
+import { Check, Clock, UserPlus, X } from "lucide-react";
 
 type Props = {
   connectionStatus: "NONE" | "PENDING_SENT" | "PENDING_RECEIVED" | "ACCEPTED";
@@ -20,7 +20,7 @@ const ConnectionButton: React.FC<Props> = ({
   onCancel,
 }) => {
   const base =
-    `px-4 py-2 rounded-full font-medium transition-colors cursor-pointer capitalize border border-white/30 bg-white/10 flex items-center gap-2 justify-center w-full`;
+    `px-4 py-2 rounded-full font-medium transition-colors cursor-pointer capitalize border border-white/30 bg-white/10 flex items-center gap-2 justify-center w-full text-white`;
 
   switch (connectionStatus) {
     case "NONE":
@@ -69,10 +69,10 @@ const ConnectionButton: React.FC<Props> = ({
       return (
         <button
           onClick={() => onCancel(connectionId!)}
-          className={`${base} border-purple-400/40 hover:shadow-[0_0_14px_rgba(180,100,255,0.6)]`}
+          className={`${base} border-red-400/40 hover:shadow-[0_0_14px_rgba(255,100,100,0.6)] hover:border-red-500/60`}
         >
-          <Users size={16} />
-          Friends
+          <X size={16} />
+          Unfriend
         </button>
       );
 

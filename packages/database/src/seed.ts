@@ -198,6 +198,69 @@ async function main() {
         spotifyUri: "spotify:artist:4qTpGw6KaD79vXWC5yQHW1",
       },
     }),
+    prisma.artist.create({
+      data: {
+        spotifyArtistId: "9j3dKE1PGUPGBdPwQJOaKX",
+        name: "Charli XCX",
+        genres: ["hyperpop", "pop", "electropop"],
+        imageUrl: "https://i.scdn.co/image/ab6761610000e5eb9999999999999999999999",
+        spotifyUri: "spotify:artist:9j3dKE1PGUPGBdPwQJOaKX",
+      },
+    }),
+    prisma.artist.create({
+      data: {
+        spotifyArtistId: "esdeekid_mock_id",
+        name: "Esdeekid",
+        genres: ["electronic", "hyperpop", "experimental"],
+        imageUrl: "https://i.scdn.co/image/ab6761610000e5ebaaaaaaaaaaaaaaaaaaaaaa",
+        spotifyUri: "spotify:artist:esdeekid_mock_id",
+      },
+    }),
+    prisma.artist.create({
+      data: {
+        spotifyArtistId: "bassvictim_mock_id",
+        name: "bassvictim",
+        genres: ["electronic", "bass", "experimental"],
+        imageUrl: "https://i.scdn.co/image/ab6761610000e5ebbbbbbbbbbbbbbbbbbbbbbb",
+        spotifyUri: "spotify:artist:bassvictim_mock_id",
+      },
+    }),
+    prisma.artist.create({
+      data: {
+        spotifyArtistId: "3TVXtAsR1Inumwj472S9r4",
+        name: "Porter Robinson",
+        genres: ["electronic", "synth pop", "future bass"],
+        imageUrl: "https://i.scdn.co/image/ab6761610000e5ebcccccccccccccccccccccc",
+        spotifyUri: "spotify:artist:3TVXtAsR1Inumwj472S9r4",
+      },
+    }),
+    prisma.artist.create({
+      data: {
+        spotifyArtistId: "6nxWCVXbOlEVRexSbLsTer",
+        name: "Flume",
+        genres: ["electronic", "future bass", "experimental"],
+        imageUrl: "https://i.scdn.co/image/ab6761610000e5ebdddddddddddddddddddddd",
+        spotifyUri: "spotify:artist:6nxWCVXbOlEVRexSbLsTer",
+      },
+    }),
+    prisma.artist.create({
+      data: {
+        spotifyArtistId: "1xU878Z1QtBldR7ru9owdU",
+        name: "AG Cook",
+        genres: ["hyperpop", "electronic", "experimental pop"],
+        imageUrl: "https://i.scdn.co/image/ab6761610000e5ebeeeeeeeeeeeeeeeeeeeeee",
+        spotifyUri: "spotify:artist:1xU878Z1QtBldR7ru9owdU",
+      },
+    }),
+    prisma.artist.create({
+      data: {
+        spotifyArtistId: "5J0PAxP46l2FIvEGEgxCTS",
+        name: "Yaeji",
+        genres: ["house", "electronic", "lo-fi house"],
+        imageUrl: "https://i.scdn.co/image/ab6761610000e5ebffffffffffffffffffffff",
+        spotifyUri: "spotify:artist:5J0PAxP46l2FIvEGEgxCTS",
+      },
+    }),
   ]);
 
   await Promise.all([
@@ -388,6 +451,63 @@ async function main() {
         rank: 2,
       },
     }),
+    // Add new electronic artists to users
+    prisma.userTopArtist.create({
+      data: {
+        userId: users[0].id,
+        artistId: artists[8].id, // Charli XCX
+        rank: 3,
+      },
+    }),
+    prisma.userTopArtist.create({
+      data: {
+        userId: users[1].id,
+        artistId: artists[9].id, // Esdeekid
+        rank: 3,
+      },
+    }),
+    prisma.userTopArtist.create({
+      data: {
+        userId: users[2].id,
+        artistId: artists[10].id, // bassvictim
+        rank: 3,
+      },
+    }),
+    prisma.userTopArtist.create({
+      data: {
+        userId: users[3].id,
+        artistId: artists[11].id, // Porter Robinson
+        rank: 3,
+      },
+    }),
+    prisma.userTopArtist.create({
+      data: {
+        userId: users[4].id,
+        artistId: artists[12].id, // Flume
+        rank: 3,
+      },
+    }),
+    prisma.userTopArtist.create({
+      data: {
+        userId: users[5].id,
+        artistId: artists[13].id, // AG Cook
+        rank: 3,
+      },
+    }),
+    prisma.userTopArtist.create({
+      data: {
+        userId: users[6].id,
+        artistId: artists[14].id, // Yaeji
+        rank: 3,
+      },
+    }),
+    prisma.userTopArtist.create({
+      data: {
+        userId: users[7].id,
+        artistId: artists[8].id, // Charli XCX
+        rank: 3,
+      },
+    }),
   ]);
 
   await Promise.all([
@@ -469,6 +589,41 @@ async function main() {
         receiverId: users[7].id,
         status: "ACCEPTED",
         compatibilityScore: 90.2,
+      },
+    }),
+    // Additional diverse connection test data
+    // More pending incoming requests (for testing accept/decline functionality)
+    prisma.connection.create({
+      data: {
+        requesterId: users[7].id,
+        receiverId: users[0].id,
+        status: "PENDING",
+        compatibilityScore: 76.4,
+      },
+    }),
+    prisma.connection.create({
+      data: {
+        requesterId: users[4].id,
+        receiverId: users[1].id,
+        status: "PENDING",
+        compatibilityScore: 68.9,
+      },
+    }),
+    // More pending outgoing requests (for testing cancel functionality)
+    prisma.connection.create({
+      data: {
+        requesterId: users[1].id,
+        receiverId: users[5].id,
+        status: "PENDING",
+        compatibilityScore: 71.2,
+      },
+    }),
+    prisma.connection.create({
+      data: {
+        requesterId: users[2].id,
+        receiverId: users[4].id,
+        status: "PENDING",
+        compatibilityScore: 65.8,
       },
     }),
   ]);

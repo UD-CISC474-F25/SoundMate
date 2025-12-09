@@ -9,7 +9,7 @@ type User = {
   username: string;
   bio?: string | null;
   compatibilityScore?: number;
-  connectionStatus?: "NONE" | "PENDING" | "ACCEPTED";
+  connectionStatus?: "NONE" | "PENDING_SENT" | "PENDING_RECEIVED" | "ACCEPTED";
   isPendingFromThem?: boolean;
   connectionId?: string | null;
 };
@@ -23,15 +23,9 @@ type DiscoveryListProps = {
   onUserClick?: (user: User) => void;
 };
 
-// Convert API values → ConnectionButton values
+// Return the connection status as-is (already in correct format)
 function mapStatus(user: User) {
-  if (user.connectionStatus === "ACCEPTED") return "ACCEPTED";
-
-  if (user.connectionStatus === "PENDING") {
-    return user.isPendingFromThem ? "PENDING_RECEIVED" : "PENDING_SENT";
-  }
-
-  return "NONE";
+  return user.connectionStatus || "NONE";
 }
 
 const DiscoveryList: React.FC<DiscoveryListProps> = ({
@@ -82,12 +76,21 @@ const DiscoveryList: React.FC<DiscoveryListProps> = ({
                   <h3 className="text-white font-semibold truncate text-xl">
                     {user.displayName || user.username}
                   </h3>
-                  {user.compatibilityScore &&
-                    user.compatibilityScore > 70 && (
-                      <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs font-medium flex-shrink-0">
-                        {user.compatibilityScore}% match
-                      </span>
-                    )}
+                  {user.compatibilityScore !== undefined && user.compatibilityScore > 0 && (
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${
+                        user.compatibilityScore >= 90
+                          ? 'bg-green-500/20 text-green-400'
+                          : user.compatibilityScore >= 75
+                          ? 'bg-yellow-500/20 text-yellow-400'
+                          : user.compatibilityScore >= 50
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'bg-purple-500/20 text-purple-400'
+                      }`}
+                    >
+                      {user.compatibilityScore}% match
+                    </span>
+                  )}
                 </div>
                 <p className="text-gray-400 text-sm mb-1">@{user.username}</p>
                 {user.bio && (
