@@ -6,9 +6,9 @@ import { GenreCard } from "../GenreCard/GenreCard";
 type Tab = "artists" | "songs" | "genres";
 
 interface ProfileCardSwitcherProps {
-  topArtists: any[];
-  topSongs: any[];
-  topGenres: string[];
+  topArtists: Array<any>;
+  topSongs: Array<any>;
+  topGenres: Array<string>;
 }
 
 export function ProfileCardSwitcher({
@@ -20,8 +20,8 @@ export function ProfileCardSwitcher({
 
   const tabClasses = (active: boolean) =>
     active
-      ? "font-semibold text-white cursor-pointer"
-      : "text-gray-400 hover:text-gray-300 cursor-pointer";
+      ? "font-bold text-white cursor-pointer transition-all text-xl sm:text-2xl scale-105"
+      : "text-gray-500 hover:text-gray-300 cursor-pointer transition-all hover:scale-105";
 
   const gapMap: Record<Tab, string> = {
     artists: "gap-x-4 sm:gap-x-8 md:gap-x-16 lg:gap-x-56",
@@ -37,7 +37,7 @@ export function ProfileCardSwitcher({
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap gap-4 sm:gap-8 mb-6 text-lg sm:text-xl">
+      <div className="flex flex-wrap gap-6 sm:gap-10 mb-8 text-lg sm:text-xl">
         <p className={tabClasses(tab === "artists")} onClick={() => setTab("artists")}>
           Top Artists
         </p>
@@ -55,27 +55,67 @@ export function ProfileCardSwitcher({
             grid
             ${colMap[tab]}
             ${gapMap[tab]}
-            gap-y-6 sm:gap-y-10
+            gap-y-8 sm:gap-y-12
             max-w-6xl
             w-full
           `}
         >
           {tab === "artists" &&
-            topArtists.slice(0, 6).map((artist) => (
-              <ArtistCard key={artist.id} artist={artist} />
+            topArtists.slice(0, 6).map((artist, index) => (
+              <div
+                key={artist.id}
+                className="animate-fadeInScale"
+                style={{ animationDelay: `${index * 70}ms` }}
+              >
+                <div className="group">
+                  <ArtistCard artist={artist} />
+                </div>
+              </div>
             ))}
 
           {tab === "songs" &&
-            topSongs.slice(0, 6).map((song) => (
-              <SongCard key={song.id} song={song} />
+            topSongs.slice(0, 6).map((song, index) => (
+              <div
+                key={song.id}
+                className="animate-fadeInScale"
+                style={{ animationDelay: `${index * 70}ms` }}
+              >
+                <div className="group">
+                  <SongCard song={song} />
+                </div>
+              </div>
             ))}
 
           {tab === "genres" &&
             topGenres.slice(0, 8).map((genre, i) => (
-              <GenreCard key={i} genre={genre} />
+              <div
+                key={i}
+                className="animate-fadeInScale"
+                style={{ animationDelay: `${i * 70}ms` }}
+              >
+                  <GenreCard genre={genre} />
+              </div>
             ))}
         </div>
       </div>
+      
+      <style>{`
+        @keyframes fadeInScale {
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        .animate-fadeInScale {
+          animation: fadeInScale 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          opacity: 0;
+        }
+      `}</style>
     </div>
   );
 }

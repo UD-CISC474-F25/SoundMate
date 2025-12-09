@@ -1,4 +1,3 @@
-// routes/discover.tsx
 import { useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { createFileRoute } from '@tanstack/react-router';
@@ -9,10 +8,10 @@ import DiscoveryModal from '../components/DiscoveryList/DiscoveryModal';
 import SearchBar from '../components/SearchBar/SearchBar';
 import { ConnectionSection } from '../components/ConnectionSection/ConnectionSection';
 import { useApiClient } from '../integrations/api';
-import type { UserProfile } from '../hooks/useUserSearch';
 import { useFriendSuggestions } from '../hooks/useFriendSuggestions';
 import { useConnections } from '../hooks/useConnections';
 import { useSpotifySync } from '../hooks/useSpotifySync';
+import type { UserProfile } from '../hooks/useUserSearch';
 
 export const Route = createFileRoute('/discover')({
   component: FriendsDiscoveryPage,
@@ -22,6 +21,9 @@ export function FriendsDiscoveryPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth0();
   const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
   const { request } = useApiClient();
+
+  // Discovery Filters
+  const [filter, setFilter] = useState<'suggestions' | 'pending' | 'sent' | 'friends'>('suggestions');
 
   // Auto-sync Spotify data if needed (respects 5-hour rate limit)
   const { isSyncing: isSpotifySyncing, syncMessage, shouldSync, hasSpotifyConnected } = useSpotifySync({
@@ -269,6 +271,55 @@ export function FriendsDiscoveryPage() {
           </p>
         </div>
 
+        {/* FILTERS */}
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => setFilter('suggestions')}
+            className={`px-4 py-2 rounded-full font-medium transition-colors cursor-pointer ${
+              filter === 'suggestions'
+                ? 'bg-white text-black'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            Discover
+          </button>
+          <button
+            onClick={() => setFilter('pending')}
+            className={`px-4 py-2 rounded-full font-medium transition-colors cursor-pointer ${
+              filter === 'pending'
+                ? 'bg-white text-black'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            Requests
+            {(connections.pendingIncoming.length + connections.pendingOutgoing.length) > 0 && (
+              <span className="ml-2 text-xs bg-yellow-500 text-black px-2 py-0.5 rounded-full">
+                {connections.pendingIncoming.length + connections.pendingOutgoing.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setFilter('friends')}
+            className={`px-4 py-2 rounded-full font-medium transition-colors cursor-pointer ${
+              filter === 'friends'
+                ? 'bg-white text-black'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            Friends
+            {connections.accepted.length > 0 && (
+              <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+                {connections.accepted.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* FILTERED CONTENT */}
+        {filter === 'suggestions' && (
+          <>
+        {/* Friend Suggestions */}
+        
         {/* Search Bar */}
         <SearchBar
           onSelectUser={handleSelectUserFromSearch}
@@ -279,41 +330,6 @@ export function FriendsDiscoveryPage() {
           onCancel={handleCancelConnection}
         />
 
-        {/* Pending Requests */}
-        <ConnectionSection
-          title="Pending Requests"
-          description="People who want to connect with you"
-          connections={connections.pendingIncoming}
-          type="incoming"
-          countColor="yellow"
-          onAcceptConnection={handleAcceptConnection}
-          onCancelConnection={handleCancelConnection}
-          onUserClick={handleClickConnection}
-        />
-
-        {/* Sent Invitations */}
-        <ConnectionSection
-          title="Sent Invitations"
-          description="Friend requests you've sent"
-          connections={connections.pendingOutgoing}
-          type="outgoing"
-          countColor="blue"
-          onCancelConnection={handleCancelConnection}
-          onUserClick={handleClickConnection}
-        />
-
-        {/* Friends */}
-        <ConnectionSection
-          title="Friends"
-          description="Your connected friends"
-          connections={connections.accepted}
-          type="friends"
-          countColor="green"
-          onCancelConnection={handleCancelConnection}
-          onUserClick={handleClickConnection}
-        />
-
-        {/* Friend Suggestions */}
         {!suggestionsLoading && suggestions.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -361,92 +377,163 @@ export function FriendsDiscoveryPage() {
           </div>
         )}
 
-        {/* Suggestions Loading State */}
-        {suggestionsLoading && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-white">Suggested Friends</h2>
-            </div>
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-lg text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-              <p className="text-gray-400">
-                {isSpotifySyncing ? 'Syncing your Spotify data...' : 'Finding your perfect music matches...'}
-              </p>
-              {syncMessage && (
-                <p className="text-sm text-gray-500 mt-2">{syncMessage}</p>
+            {/* Suggestions Loading State */}
+            {suggestionsLoading && (
+              <div className="mb-8">
+                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-lg text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                  <p className="text-gray-400">
+                    {isSpotifySyncing ? 'Syncing your Spotify data...' : 'Finding your perfect music matches...'}
+                  </p>
+                  {syncMessage && (
+                    <p className="text-sm text-gray-500 mt-2">{syncMessage}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Suggestions Empty State */}
+            {!suggestionsLoading && suggestions.length === 0 && (
+              <div className="mb-8">
+                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-lg text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-300 font-medium mb-2">No suggestions available yet</p>
+                  <p className="text-gray-400 text-sm">
+                    Connect your Spotify and sync your music to get personalized friend suggestions!
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Recent Searches */}
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-white">Recent Searches</h2>
+                {recentUsers.length > 0 && (
+                  <button
+                    onClick={clearRecents}
+                    className="text-sm text-red-300 hover:text-red-400 transition"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {recentUsers.length === 0 ? (
+                <p className="text-gray-400">You haven't searched for anyone recently.</p>
+              ) : (
+                <DiscoveryList
+                  users={recentUsers.map(u => ({
+                    id: u.id,
+                    profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
+                    displayName: u.displayName ?? null,
+                    username: u.username,
+                    bio: u.bio ?? null,
+                    compatibilityScore: u.compatibilityScore,
+                    connectionStatus: getConnectionStatusForList(u) as any,
+                    isPendingFromThem: u.isPendingFromThem,
+                    connectionId: u.connectionId ?? null,
+                  }))}
+                  onUserClick={(userItem) => {
+                    handleClickRecent(userItem.id);
+                  }}
+                  onConnect={(userId) => handleConnect(userId)}
+                  onAcceptConnection={(connectionId) => handleAcceptConnection(connectionId)}
+                  onCancelConnection={(connectionId) => handleCancelConnection(connectionId)}
+                />
               )}
             </div>
-          </div>
+          </>
         )}
 
-        {/* Suggestions Empty State */}
-        {!suggestionsLoading && suggestions.length === 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-white">Suggested Friends</h2>
-            </div>
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-lg text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+        {filter === 'pending' && (
+          <>
+            {connectionsLoading ? (
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-lg text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading requests...</p>
               </div>
-              <p className="text-gray-300 font-medium mb-2">No suggestions available yet</p>
-              <p className="text-gray-400 text-sm mb-4">
-                Connect your Spotify and sync your music to get personalized friend suggestions!
-              </p>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('[Discover] Refresh button clicked');
-                  refetchSuggestions();
-                }}
-                disabled={suggestionsLoading}
-                className="px-6 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-medium rounded-full transition-colors cursor-pointer"
-              >
-                {suggestionsLoading ? 'Loading...' : 'Refresh Suggestions'}
-              </button>
-            </div>
-          </div>
+            ) : connections.pendingIncoming.length === 0 && connections.pendingOutgoing.length === 0 ? (
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-lg text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <p className="text-gray-300 font-medium mb-2">No pending requests</p>
+                <p className="text-gray-400 text-sm">
+                  You don't have any pending connection requests at the moment.
+                </p>
+              </div>
+            ) : (
+              <>
+                {connections.pendingIncoming.length > 0 && (
+                  <ConnectionSection
+                    title="Pending Requests"
+                    description="People who want to connect with you"
+                    connections={connections.pendingIncoming}
+                    type="incoming"
+                    countColor="yellow"
+                    onAcceptConnection={handleAcceptConnection}
+                    onCancelConnection={handleCancelConnection}
+                    onUserClick={handleClickConnection}
+                  />
+                )}
+
+                {connections.pendingOutgoing.length > 0 && (
+                  <div className={connections.pendingIncoming.length > 0 ? "mt-8" : ""}>
+                    <ConnectionSection
+                      title="Sent Invitations"
+                      description="Friend requests you've sent"
+                      connections={connections.pendingOutgoing}
+                      type="outgoing"
+                      countColor="blue"
+                      onCancelConnection={handleCancelConnection}
+                      onUserClick={handleClickConnection}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
 
-        {/* Recent Searches */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-white">Recent Searches</h2>
-            <button
-              onClick={clearRecents}
-              className="text-sm text-red-300 hover:text-red-400 transition"
-            >
-              Clear
-            </button>
-          </div>
-
-          {recentUsers.length === 0 ? (
-            <p className="text-gray-400">You haven't searched for anyone recently.</p>
-          ) : (
-            <DiscoveryList
-              users={recentUsers.map(u => ({
-                id: u.id,
-                profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
-                displayName: u.displayName ?? null,
-                username: u.username,
-                bio: u.bio ?? null,
-                compatibilityScore: u.compatibilityScore,
-                connectionStatus: getConnectionStatusForList(u) as any,
-                isPendingFromThem: u.isPendingFromThem,
-                connectionId: u.connectionId ?? null,
-              }))}
-              onUserClick={(userItem) => {
-                handleClickRecent(userItem.id);
-              }}
-              onConnect={(userId) => handleConnect(userId)}
-              onAcceptConnection={(connectionId) => handleAcceptConnection(connectionId)}
-              onCancelConnection={(connectionId) => handleCancelConnection(connectionId)}
-            />
-          )}
-        </div>
+        {filter === 'friends' && (
+          <>
+            {connectionsLoading ? (
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-lg text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading friends...</p>
+              </div>
+            ) : connections.accepted.length === 0 ? (
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-lg text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <p className="text-gray-300 font-medium mb-2">No friends yet</p>
+                <p className="text-gray-400 text-sm">
+                  Start connecting with people who share your music taste!
+                </p>
+              </div>
+            ) : (
+              <ConnectionSection
+                title="Friends"
+                description="Your connected friends"
+                connections={connections.accepted}
+                type="friends"
+                countColor="green"
+                onCancelConnection={handleCancelConnection}
+                onUserClick={handleClickConnection}
+              />
+            )}
+          </>
+        )}
 
         {/* User Detail Modal */}
         {selectedUser && (
