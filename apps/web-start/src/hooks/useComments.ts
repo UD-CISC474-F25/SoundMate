@@ -13,6 +13,7 @@ export interface EventComment {
     username: string;
     displayName: string | null;
     profilePhotoUrl: string | null;
+    auth0Id: string | null;
   };
 }
 

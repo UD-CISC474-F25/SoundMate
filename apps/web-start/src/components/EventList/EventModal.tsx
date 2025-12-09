@@ -4,6 +4,7 @@ import type { Event } from "../../hooks/useEvents";
 import { useEvents } from "../../hooks/useEvents";
 import { useComments } from "../../hooks/useComments";
 import { SlideFade } from "../Animations";
+import { useAuth0 } from "@auth0/auth0-react";
 
 interface EventModalProps {
   event: Event;
@@ -105,7 +106,7 @@ export function EventModal({
           />
         </div>
 
-        <div className="relative h-full">
+        <div className="relative h-full overflow-y-hidden">
           <SlideFade show={view === "details"} key={`details-${liveEvent.id}-${liveEvent.attendees?.length || 0}`}>
             <EventDetailsContent
               event={liveEvent}
@@ -306,6 +307,8 @@ function EventComments({ event, setView }: EventCommentsProps) {
   } = useComments(event.id);
 
   const [content, setContent] = useState("");
+  const { user, isAuthenticated } = useAuth0();
+
 
   const postComment = async () => {
     if (!content.trim()) return;
@@ -314,7 +317,10 @@ function EventComments({ event, setView }: EventCommentsProps) {
   };
 
   return (
-    <div className="p-6 flex flex-col min-h-full">
+    <div className="p-6 flex flex-col max-h-full overflow-y-auto modal-scroll">
+
+
+
       <button
         onClick={() => setView("details")}
         className="self-start text-gray-300 hover:text-white mb-4 cursor-pointer"
@@ -336,18 +342,23 @@ function EventComments({ event, setView }: EventCommentsProps) {
                 key={c.id}
                 className="bg-white/10 border border-white/20 rounded-lg p-3"
               >
-                <p className="font-semibold text-sm">
-                  @{c.user.displayName || c.user.username}
-                </p>
-                <p className="text-sm mt-1">{c.content}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-sm">
+                    @{c.user.displayName || c.user.username}
+                  </p>
 
-                <button
-                  onClick={() => deleteComment(event.id, c.id)}
-                  disabled={isDeleting}
-                  className="text-xs text-red-400 mt-2 hover:text-red-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Delete
-                </button>
+                  {isAuthenticated && user && c.user.auth0Id === user.sub && (
+                    <button
+                      onClick={() => deleteComment(event.id, c.id)}
+                      disabled={isDeleting}
+                      className="text-xs text-red-400 hover:text-red-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-sm mt-1">{c.content}</p>
               </div>
             ))}
           </div>
