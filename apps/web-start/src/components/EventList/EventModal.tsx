@@ -106,7 +106,7 @@ export function EventModal({
           />
         </div>
 
-        <div className="relative h-full">
+        <div className="relative h-full overflow-y-hidden">
           <SlideFade show={view === "details"} key={`details-${liveEvent.id}-${liveEvent.attendees?.length || 0}`}>
             <EventDetailsContent
               event={liveEvent}
@@ -317,7 +317,10 @@ function EventComments({ event, setView }: EventCommentsProps) {
   };
 
   return (
-    <div className="p-6 flex flex-col min-h-full">
+    <div className="p-6 flex flex-col max-h-full overflow-y-auto modal-scroll">
+
+
+
       <button
         onClick={() => setView("details")}
         className="self-start text-gray-300 hover:text-white mb-4 cursor-pointer"
@@ -339,12 +342,12 @@ function EventComments({ event, setView }: EventCommentsProps) {
                 key={c.id}
                 className="bg-white/10 border border-white/20 rounded-lg p-3"
               >
-                <p className="font-semibold text-sm">
-                  @{c.user.displayName || c.user.username}
-                </p>
-                <p className="text-sm mt-1">{c.content}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-sm">
+                    @{c.user.displayName || c.user.username}
+                  </p>
 
-                {isAuthenticated && user && c.user.auth0Id === user.sub && (
+                  {isAuthenticated && user && c.user.auth0Id === user.sub && (
                     <button
                       onClick={() => deleteComment(event.id, c.id)}
                       disabled={isDeleting}
@@ -352,9 +355,10 @@ function EventComments({ event, setView }: EventCommentsProps) {
                     >
                       Delete
                     </button>
-                )}
-              </div>
-              <p className="text-sm mt-1">{c.content}</p>
+                  )}
+                </div>
+
+                <p className="text-sm mt-1">{c.content}</p>
               </div>
             ))}
           </div>
