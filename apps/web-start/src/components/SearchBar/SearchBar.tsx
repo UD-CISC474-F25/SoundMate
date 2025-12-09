@@ -12,6 +12,10 @@ interface SearchBarProps {
   onConnect: (userId: string) => Promise<any>;
   onAccept: (connectionId: string) => Promise<any>;
   onCancel: (connectionId: string) => Promise<any>;
+  optimisticStatusUpdates?: Map<string, {
+    connectionStatus: 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED';
+    connectionId?: string;
+  }>;
 }
 
 export default function SearchBar({
@@ -21,97 +25,28 @@ export default function SearchBar({
   onConnect,
   onAccept,
   onCancel,
+  optimisticStatusUpdates,
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const { users, loading, error } = useUserSearch(query);
 
-  // Track optimistic connection status updates that persist across searches
-  const [optimisticUpdates, setOptimisticUpdates] = useState<Map<string, {
-    connectionStatus: 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED';
-    connectionId?: string | null;
-  }>>(new Map());
-
-  // Handler wrappers to update local state after actions
+  // Handler wrappers to call parent handlers
   const handleConnect = async (userId: string) => {
-    // Store optimistic update in persistent map (immediate UI update)
-    setOptimisticUpdates(prev => {
-      const newMap = new Map(prev);
-      newMap.set(userId, { connectionStatus: 'PENDING_SENT' });
-      return newMap;
-    });
-
-    // Call parent handler and get the real connectionId
-    onConnect(userId).then((result: any) => {
-      // Update with real connectionId from server
-      if (result && result.id) {
-        setOptimisticUpdates(prev => {
-          const newMap = new Map(prev);
-          newMap.set(userId, {
-            connectionStatus: 'PENDING_SENT',
-            connectionId: result.id
-          });
-          return newMap;
-        });
-      }
-    }).catch(err => {
+    onConnect(userId).catch(err => {
       console.error('Failed to send connection request:', err);
-      // Revert optimistic update on error
-      setOptimisticUpdates(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(userId);
-        return newMap;
-      });
       alert(err instanceof Error ? err.message : 'Failed to send connection request.');
     });
   };
 
   const handleAccept = async (connectionId: string) => {
-    // Find the user with this connectionId and update optimistically
-    const user = users.find(u => u.connectionId === connectionId);
-    if (user) {
-      setOptimisticUpdates(prev => {
-        const newMap = new Map(prev);
-        newMap.set(user.id, { connectionStatus: 'ACCEPTED', connectionId });
-        return newMap;
-      });
-    }
-
-    // Call parent handler in background
     onAccept(connectionId).catch(err => {
       console.error('Failed to accept connection:', err);
-      // Revert on error
-      if (user) {
-        setOptimisticUpdates(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(user.id);
-          return newMap;
-        });
-      }
     });
   };
 
   const handleCancel = async (connectionId: string) => {
-    // Find the user with this connectionId and update optimistically
-    const user = users.find(u => u.connectionId === connectionId);
-    if (user) {
-      setOptimisticUpdates(prev => {
-        const newMap = new Map(prev);
-        newMap.set(user.id, { connectionStatus: 'NONE', connectionId: null });
-        return newMap;
-      });
-    }
-
-    // Call parent handler in background
     onCancel(connectionId).catch(err => {
       console.error('Failed to cancel connection:', err);
-      // Revert on error
-      if (user) {
-        setOptimisticUpdates(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(user.id);
-          return newMap;
-        });
-      }
     });
   };
 
@@ -175,7 +110,7 @@ export default function SearchBar({
             <ul className="space-y-3">
               {users.map((user) => {
                 // Apply optimistic updates if they exist
-                const optimisticUpdate = optimisticUpdates.get(user.id);
+                const optimisticUpdate = optimisticStatusUpdates?.get(user.id);
                 const displayUser = optimisticUpdate ? {
                   ...user,
                   connectionStatus: optimisticUpdate.connectionStatus,

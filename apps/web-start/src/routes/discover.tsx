@@ -9,10 +9,10 @@ import DiscoveryModal from '../components/DiscoveryList/DiscoveryModal';
 import SearchBar from '../components/SearchBar/SearchBar';
 import { ConnectionSection } from '../components/ConnectionSection/ConnectionSection';
 import { useApiClient, useCurrentUser } from '../integrations/api';
-import type { UserProfile } from '../hooks/useUserSearch';
 import { useFriendSuggestions } from '../hooks/useFriendSuggestions';
 import { useConnections } from '../hooks/useConnections';
 import { useSpotifySync } from '../hooks/useSpotifySync';
+import type { UserProfile } from '../hooks/useUserSearch';
 
 export const Route = createFileRoute('/discover')({
   component: FriendsDiscoveryPage,
@@ -130,8 +130,33 @@ export function FriendsDiscoveryPage() {
   };
 
   const handleAcceptConnection = async (connectionId: string) => {
+    // Find userId from connections to update optimistic status
+    const allConnections = [
+      ...connections.pendingIncoming,
+      ...connections.pendingOutgoing,
+      ...connections.accepted,
+    ];
+    const connection = allConnections.find(c => c.id === connectionId);
+    const userId = connection
+      ? (connection.requester.id === currentUser?.id
+        ? connection.receiver.id
+        : connection.requester.id)
+      : null;
+
     // Hide from pending lists immediately (optimistic)
     setHiddenConnectionIds(prev => new Set(prev).add(connectionId));
+
+    // Update optimistic status to ACCEPTED
+    if (userId) {
+      setOptimisticStatusUpdates(prev => {
+        const newMap = new Map(prev);
+        newMap.set(userId, {
+          connectionStatus: 'ACCEPTED',
+          connectionId
+        });
+        return newMap;
+      });
+    }
 
     await request(`/connections/${connectionId}`, {
       method: 'PATCH',
@@ -155,6 +180,16 @@ export function FriendsDiscoveryPage() {
         newSet.delete(connectionId);
         return newSet;
       });
+      // Keep optimistic status update for a bit longer
+      setTimeout(() => {
+        if (userId) {
+          setOptimisticStatusUpdates(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(userId);
+            return newMap;
+          });
+        }
+      }, 1000);
     }).catch(err =>
       console.error('Failed to refetch after accept:', err)
     );
@@ -168,9 +203,11 @@ export function FriendsDiscoveryPage() {
       ...connections.accepted,
     ];
     const connection = allConnections.find(c => c.id === connectionId);
-    const userId = connection ? (connection.requesterId === connection.receiverId ? connection.requesterId :
-      (connection.requester.id !== connection.receiver.id ?
-        (connection.requesterId === currentUser?.id ? connection.receiverId : connection.requesterId) : connection.requesterId)) : null;
+    const userId = connection
+      ? (connection.requester.id === currentUser?.id
+        ? connection.receiver.id
+        : connection.requester.id)
+      : null;
 
     // Hide from UI immediately (optimistic)
     setHiddenConnectionIds(prev => new Set(prev).add(connectionId));
@@ -179,7 +216,7 @@ export function FriendsDiscoveryPage() {
     if (userId) {
       setOptimisticStatusUpdates(prev => {
         const newMap = new Map(prev);
-        newMap.set(userId, { connectionStatus: 'NONE', connectionId: null });
+        newMap.set(userId, { connectionStatus: 'NONE' });
         return newMap;
       });
     }
@@ -356,11 +393,6 @@ export function FriendsDiscoveryPage() {
     }
   };
 
-  // Return connection status as-is (already in correct format)
-  const getConnectionStatusForList = (user: UserProfile) => {
-    return user.connectionStatus || 'NONE';
-  };
-
   if (authLoading || !isAuthenticated || isCheckingOnboarding || needsOnboarding) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -392,6 +424,7 @@ export function FriendsDiscoveryPage() {
           onConnect={handleConnect}
           onAccept={handleAcceptConnection}
           onCancel={handleCancelConnection}
+          optimisticStatusUpdates={optimisticStatusUpdates}
         />
 
         {/* Pending Requests */}
@@ -466,10 +499,10 @@ export function FriendsDiscoveryPage() {
                   username: user.username,
                   bio: user.bio,
                   compatibilityScore: s.compatibilityScore,
-                  connectionStatus: finalConnectionStatus as any,
+                  connectionStatus: finalConnectionStatus,
                   isPendingFromThem: user.isPendingFromThem || false,
-                  connectionId: optimisticUpdate?.connectionId ?? (user.connectionId || null),
-                  sharedArtists: s.sharedArtists?.map(a => ({ id: a.id, name: a.name, imageUrl: a.imageUrl })) || [],
+                  connectionId: optimisticUpdate?.connectionId ?? user.connectionId ?? null,
+                  sharedArtists: s.sharedArtists.map(a => ({ id: a.id, name: a.name, imageUrl: a.imageUrl })),
                 };
               })}
               onUserClick={(userItem) => {
@@ -548,17 +581,25 @@ export function FriendsDiscoveryPage() {
             <p className="text-gray-400">You haven't searched for anyone recently.</p>
           ) : (
             <DiscoveryList
-              users={recentUsers.map(u => ({
-                id: u.id,
-                profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
-                displayName: u.displayName ?? null,
-                username: u.username,
-                bio: u.bio ?? null,
-                compatibilityScore: u.compatibilityScore,
-                connectionStatus: getConnectionStatusForList(u) as any,
-                isPendingFromThem: u.isPendingFromThem,
-                connectionId: u.connectionId ?? null,
-              }))}
+              users={recentUsers.map(u => {
+                // Check for optimistic update first
+                const optimisticUpdate = optimisticStatusUpdates.get(u.id);
+                const finalConnectionStatus = optimisticUpdate
+                  ? optimisticUpdate.connectionStatus
+                  : (u.connectionStatus || 'NONE');
+
+                return {
+                  id: u.id,
+                  profilePicture: u.avatar ?? u.profilePhotoUrl ?? null,
+                  displayName: u.displayName ?? null,
+                  username: u.username,
+                  bio: u.bio ?? null,
+                  compatibilityScore: u.compatibilityScore,
+                  connectionStatus: finalConnectionStatus as any,
+                  isPendingFromThem: u.isPendingFromThem,
+                  connectionId: (optimisticUpdate?.connectionId ?? u.connectionId) ?? null,
+                };
+              })}
               onUserClick={(userItem) => {
                 handleClickRecent(userItem.id);
               }}
