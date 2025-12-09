@@ -4,7 +4,6 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { Plus } from 'lucide-react';
 import { useEvents } from '../hooks/useEvents';
 import { TypewriterText } from '../components/Animations';
-
 import { EventList } from '../components/EventList/EventList';
 import { CreateEventForm } from '../components/EventForm/CreateEventForm';
 import { EditEventForm } from '../components/EventForm/EditEventForm';

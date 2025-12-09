@@ -82,7 +82,7 @@ export function EventModal({
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold"
+          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold cursor-pointer"
         >
           &times;
         </button>
@@ -157,14 +157,14 @@ function EventDetailsContent({
           <div className="flex gap-3">
             <button
               onClick={() => onEdit(event)}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-white cursor-pointer"
             >
               <Edit size={20} />
             </button>
             <button
               onClick={() => onDelete(event.id)}
               disabled={isDeleting}
-              className="text-gray-400 hover:text-red-400 disabled:opacity-50"
+              className="text-gray-400 hover:text-red-400 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               <Trash2 size={20} />
             </button>
@@ -245,33 +245,33 @@ function EventDetailsContent({
         <button
           onClick={() => onRsvp(event.id, "GOING")}
           disabled={isRsvping}
-          className={`py-2 rounded-lg font-medium transition ${
+          className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "GOING"
-              ? "bg-green-500 text-white"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-          }`}
+              ? "bg-green-500 text-white scale-105 shadow-lg shadow-green-500/50"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
+          } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
           Going
         </button>
         <button
           onClick={() => onRsvp(event.id, "MAYBE")}
           disabled={isRsvping}
-          className={`py-2 rounded-lg font-medium transition ${
+          className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "MAYBE"
-              ? "bg-yellow-500 text-black"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-          }`}
+              ? "bg-yellow-500 text-white scale-105 shadow-lg shadow-yellow-500/50"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
+          } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
           Maybe
         </button>
         <button
           onClick={() => onRsvp(event.id, "DECLINED")}
           disabled={isRsvping}
-          className={`py-2 rounded-lg font-medium transition ${
+          className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "DECLINED"
-              ? "bg-red-500/20 text-red-400"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-          }`}
+              ? "bg-red-500/50 text-white-400 scale-105 shadow-lg shadow-red-500/50"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
+          } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
           Can't Go
         </button>
@@ -280,7 +280,7 @@ function EventDetailsContent({
       <button
         onClick={() => setView("comments")}
         className="w-full bg-white/10 border border-white/20 rounded-xl p-4 
-                   transition cursor-pointer mb-6 "
+                   transition cursor-pointer mb-6 hover:bg-white/15 hover:scale-[1.02]"
       >
         See Comments ({event._count.comments})
       </button>
@@ -309,16 +309,16 @@ function EventComments({ event, setView }: EventCommentsProps) {
   return (
     <div className="p-6 pb-12 flex flex-col h-full">
       <button
-  onClick={() => setView("details")}
-  className="self-start text-gray-300 hover:text-white mb-4"
->
-  ← Back
-</button>
-
+        onClick={() => setView("details")}
+        className="self-start text-gray-300 hover:text-white mb-4 cursor-pointer"
+      >
+        ← Back
+      </button>
+      
 
       <h2 className="text-2xl font-bold mb-4">Comments</h2>
 
-<div className="flex-1 overflow-y-auto pr-2 modal-scroll">
+      <div className="flex-1 overflow-y-auto pr-2 modal-scroll">
         {commentsLoading ? (
           <p className="text-gray-400">Loading...</p>
         ) : comments.length === 0 ? (
@@ -337,7 +337,7 @@ function EventComments({ event, setView }: EventCommentsProps) {
               <button
                 onClick={() => deleteComment(event.id, c.id)}
                 disabled={isDeleting}
-                className="text-xs text-red-400 mt-2 hover:text-red-300"
+                className="text-xs text-red-400 mt-2 hover:text-red-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Delete
               </button>
@@ -350,13 +350,13 @@ function EventComments({ event, setView }: EventCommentsProps) {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Write a comment..."
-        className="w-full bg-white/10 px-3 py-2 rounded-md mt-4"
+        className="w-full bg-white/10 px-3 py-2 rounded-md mt-4 cursor-text"
       />
 
       <button
         onClick={postComment}
         disabled={isAdding}
-        className="w-full py-3 bg-white text-black rounded-lg mt-4 disabled:opacity-50"
+        className="w-full py-3 bg-white text-black rounded-lg mt-4 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed hover:bg-gray-100 transition"
       >
         {isAdding ? "Posting..." : "Post Comment"}
       </button>
