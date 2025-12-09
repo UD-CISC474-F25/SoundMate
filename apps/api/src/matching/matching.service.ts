@@ -294,6 +294,13 @@ export class MatchingService {
   > {
     const { limit = 20, minScore = 50, excludeConnections = true } = options;
 
+    // Check if current user has Spotify stats
+    const currentUserStats = await this.prisma.spotifyStats.findUnique({
+      where: { userId },
+    });
+
+    console.log('[MatchingService] Current user has Spotify stats:', !!currentUserStats);
+
     // Get all potential matches (exclude self)
     // Only require isOnboarded, not Spotify stats (for better UX when users have no music data)
     let potentialUsers = await this.prisma.user.findMany({
@@ -304,6 +311,8 @@ export class MatchingService {
       select: { id: true },
       take: 100, // Limit initial fetch for performance
     });
+
+    console.log('[MatchingService] Found potential users:', potentialUsers.length);
 
     // Exclude already connected users if requested
     if (excludeConnections) {
@@ -354,6 +363,9 @@ export class MatchingService {
     // If no users meet the minimum score, return all available users instead
     const finalSuggestions =
       filteredSuggestions.length > 0 ? filteredSuggestions : sortedSuggestions;
+
+    console.log('[MatchingService] Returning suggestions:', finalSuggestions.length);
+    console.log('[MatchingService] Top 3 scores:', finalSuggestions.slice(0, 3).map(s => s.compatibilityScore));
 
     return finalSuggestions.slice(0, limit);
   }
