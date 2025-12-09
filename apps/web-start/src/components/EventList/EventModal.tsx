@@ -254,7 +254,7 @@ function EventDetailsContent({
           disabled={isRsvping}
           className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "GOING"
-              ? "bg-green-500 text-white scale-105 shadow-lg shadow-green-500/50"
+              ? "bg-green-500 text-white scale-105 shadow-sm shadow-green-500/50"
               : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
           } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
@@ -265,7 +265,7 @@ function EventDetailsContent({
           disabled={isRsvping}
           className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "MAYBE"
-              ? "bg-yellow-500 text-white scale-105 shadow-lg shadow-yellow-500/50"
+              ? "bg-yellow-500 text-white scale-105 shadow-sm shadow-yellow-500/50"
               : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
           } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
@@ -276,7 +276,7 @@ function EventDetailsContent({
           disabled={isRsvping}
           className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "DECLINED"
-              ? "bg-red-500/50 text-white scale-105 shadow-lg shadow-red-500/50"
+              ? "bg-red-500/50 text-white scale-105 shadow-sm shadow-red-500/50"
               : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
           } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >

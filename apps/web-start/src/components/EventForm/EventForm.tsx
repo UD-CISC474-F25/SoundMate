@@ -10,7 +10,7 @@ interface EventFormProps {
     dateTime: string;
     description: string;
     musicTag: string;
-    artistId: string;
+    artistId?: string;
     visibility: "PUBLIC" | "PRIVATE";
     maxAttendees: string | number | null;
   };
@@ -95,8 +95,8 @@ export function EventForm({
           id="artistId"
           label="Featured Artist"
           type="text"
-          value={form.artistId}
-          placeholder="Artist name (optional)"
+          value={form.artistId || ''}
+          placeholder="Artist name"
           onChange={(v) => updateField("artistId", v)}
         />
 
