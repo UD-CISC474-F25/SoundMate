@@ -42,7 +42,7 @@ interface EventFormData {
   dateTime: string;
   location: string;
   musicTag: string;
-  artistId: string;
+  artistId: string; // This is actually the artist name (string input)
   visibility: 'PUBLIC' | 'PRIVATE';
   maxAttendees: string;
 }
@@ -129,7 +129,7 @@ export function useEvents() {
       dateTime: event.dateTime || '',
       location: event.location || '',
       musicTag: event.musicTag || '',
-      artistId: event.artist?.id || '',
+      artistId: event.artist?.name || '', // Use artist name, not ID
       visibility: event.visibility,
       maxAttendees: event.maxAttendees?.toString() || '',
     });
@@ -158,7 +158,7 @@ export function useEvents() {
         description: createForm.description || null,
         location: createForm.location || null,
         musicTag: createForm.musicTag || null,
-        artistId: createForm.artistId || null,
+        artistName: createForm.artistId || null, // Send as artistName
         visibility: createForm.visibility,
         maxAttendees: createForm.maxAttendees ? Number(createForm.maxAttendees) : null,
       };
@@ -188,7 +188,7 @@ export function useEvents() {
         description: createForm.description || null,
         location: createForm.location || null,
         musicTag: createForm.musicTag || null,
-        artistId: createForm.artistId || null,
+        artistName: createForm.artistId || null, // Send as artistName
         visibility: createForm.visibility,
         maxAttendees: createForm.maxAttendees ? Number(createForm.maxAttendees) : null,
       };

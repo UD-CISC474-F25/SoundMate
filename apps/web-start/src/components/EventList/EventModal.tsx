@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Clock, Edit, MapPin, Trash2, Users } from "lucide-react";
+import type { Event } from "../../hooks/useEvents";
 import { useEvents } from "../../hooks/useEvents";
 import { useComments } from "../../hooks/useComments";
 import { SlideFade } from "../Animations";
-import type { Event } from "../../hooks/useEvents";
 
 interface EventModalProps {
   event: Event;
@@ -173,7 +173,7 @@ function EventDetailsContent({
       </div>
 
       
-      {event.description && (
+      {event.description && event.description.trim() !== '' && (
         <p className="text-gray-300 mb-6 leading-relaxed">{event.description}</p>
       )}
 
@@ -181,7 +181,10 @@ function EventDetailsContent({
       {event.artist && (
         <div className="bg-white/10 border border-white/20 rounded-xl p-6 mb-4">
           <p className="text-gray-400 text-xs mb-1">Featured Artist</p>
-          <p className="text-white font-medium">🎵 {event.artist.name}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🎵</span>
+            <p className="text-white font-medium">{event.artist.name}</p>
+          </div>
         </div>
       )}
 
@@ -237,7 +240,7 @@ function EventDetailsContent({
         )}
       </div>
 
-      {event.musicTag && (
+      {event.musicTag && event.musicTag.trim() !== '' && (
         <div className="mb-6">
           <p className="text-gray-400 text-sm mb-2">Tags</p>
           <span className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-sm">
@@ -319,7 +322,6 @@ function EventComments({ event, setView }: EventCommentsProps) {
       >
         ← Back
       </button>
-      
 
       <h2 className="text-2xl font-bold mb-4">Comments</h2>
 

@@ -10,6 +10,7 @@ interface EventFormProps {
     dateTime: string;
     description: string;
     musicTag: string;
+    artistId: string;
     visibility: "PUBLIC" | "PRIVATE";
     maxAttendees: string | number | null;
   };
@@ -19,7 +20,7 @@ interface EventFormProps {
   isSaving: boolean;
 }
 
-//Frosted glass background + Blurred Overlay
+// Frosted glass background + Blurred Overlay
 function FrostedModal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
@@ -30,13 +31,13 @@ function FrostedModal({ children, onClose }: { children: React.ReactNode; onClos
       onClick={onClose}
     >
       <div
-        className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg max-w-lg w-full p-6 text-white relative"
+        className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg max-w-lg w-full p-6 text-white relative max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
           aria-label="Close modal"
-          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold"
+          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold cursor-pointer"
         >
           &times;
         </button>
@@ -90,6 +91,15 @@ export function EventForm({
           onChange={(v) => updateField("dateTime", v)}
         />
 
+        <FormInput
+          id="artistId"
+          label="Featured Artist"
+          type="text"
+          value={form.artistId}
+          placeholder="Artist name (optional)"
+          onChange={(v) => updateField("artistId", v)}
+        />
+
         {/* Description */}
         <div>
           <label htmlFor="description" className="block mb-2 font-medium">
@@ -101,7 +111,7 @@ export function EventForm({
             value={form.description}
             onChange={(e) => updateField("description", e.target.value)}
             placeholder="Tell people what to expect..."
-            className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-white/50 resize-none transition"
+            className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-white/50 resize-none transition cursor-text"
           />
         </div>
 
@@ -126,10 +136,10 @@ export function EventForm({
               onChange={(e) =>
                 updateField("visibility", e.target.value as "PUBLIC" | "PRIVATE")
               }
-              className="w-full px-4 py-2 bg-black/800 border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/800 transition"
+              className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 transition text-white cursor-pointer"
             >
-              <option value="PUBLIC">Public</option>
-              <option value="PRIVATE">Private</option>
+              <option value="PUBLIC" className="bg-gray-900">Public</option>
+              <option value="PRIVATE" className="bg-gray-900">Private</option>
             </select>
           </div>
 
@@ -148,14 +158,14 @@ export function EventForm({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-3 bg-red-800 hover:bg-gray-700 rounded-lg font-medium transition"
+            className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="flex-1 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSaving ? "Saving..." : submitLabel}
           </button>

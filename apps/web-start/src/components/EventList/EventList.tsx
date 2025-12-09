@@ -1,6 +1,6 @@
 import { Clock, MapPin } from 'lucide-react';
-import type { Event } from '../../hooks/useEvents';
 import {RainbowStripe} from '../Animations/RainbowStripe';
+import type { Event } from '../../hooks/useEvents';
 
 interface EventListProps {
   events: Array<Event>;
@@ -99,7 +99,10 @@ export function EventList({
                   {/* Artist / music tag */}
                   <div className="flex items-center gap-3 text-sm">
                     {event.artist && (
-                      <span className="text-gray-400">🎵 {event.artist.name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-lg">🎵</span>
+                        <span className="text-gray-400">{event.artist.name}</span>
+                      </div>
                     )}
                     {event.musicTag && (
                       <span className="px-2 py-0.5 bg-gray-800 text-gray-300 rounded text-xs">
@@ -118,7 +121,7 @@ export function EventList({
                           e.stopPropagation();
                           onEdit?.(event);
                         }}
-                        className="text-white hover:text-gray-300"
+                        className="text-white hover:text-gray-300 cursor-pointer"
                       >
                         Edit
                       </button>
@@ -128,7 +131,7 @@ export function EventList({
                           e.stopPropagation();
                           onDelete?.(event);
                         }}
-                        className="text-red-400 hover:text-red-300"
+                        className="text-red-400 hover:text-red-300 cursor-pointer"
                       >
                         Delete
                       </button>
@@ -170,7 +173,7 @@ export function EventList({
       {onSeeMore && visibleCount < (filteredEventsLength ?? 0) && (
         <button
           onClick={onSeeMore}
-          className="w-full py-3 bg-white-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+          className="w-full py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium cursor-pointer"
         >
           See More ({filteredEventsLength - visibleCount} more)
         </button>
