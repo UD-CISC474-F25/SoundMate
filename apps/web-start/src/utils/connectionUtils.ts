@@ -44,6 +44,16 @@ export function getConnectionButtonStatus(
  * @returns Status format for ConnectionButton component
  */
 export function getUserConnectionStatus(user: UserProfile): ConnectionButtonStatus {
+  // If the API already returned a specific status (PENDING_SENT, PENDING_RECEIVED, ACCEPTED, NONE)
+  // return it directly
+  if (user.connectionStatus === 'PENDING_SENT' ||
+      user.connectionStatus === 'PENDING_RECEIVED' ||
+      user.connectionStatus === 'ACCEPTED' ||
+      user.connectionStatus === 'NONE') {
+    return user.connectionStatus as ConnectionButtonStatus;
+  }
+
+  // Otherwise, use the old logic for backward compatibility
   return getConnectionButtonStatus(user.connectionStatus, user.isPendingFromThem);
 }
 

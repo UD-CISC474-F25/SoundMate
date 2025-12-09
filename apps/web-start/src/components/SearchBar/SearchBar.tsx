@@ -35,14 +35,6 @@ export default function SearchBar({
   // Enrich search results with connection status from loaded connections
   const users = enrichSearchResults ? enrichSearchResults(rawUsers) : rawUsers;
 
-  // Debug: log search results to see connection status
-  if (users.length > 0) {
-    console.log('[SearchBar] Enriched search results:', users);
-    console.log('[SearchBar] First user connectionStatus:', users[0]?.connectionStatus);
-    console.log('[SearchBar] First user isPendingFromThem:', users[0]?.isPendingFromThem);
-    console.log('[SearchBar] First user connectionId:', users[0]?.connectionId);
-  }
-
   const handleClearSearch = () => {
     setQuery("");
   };

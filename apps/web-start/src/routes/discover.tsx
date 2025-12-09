@@ -267,52 +267,6 @@ export function FriendsDiscoveryPage() {
     );
   };
 
-  // Enrich search results with connection status from loaded connections
-  const enrichSearchResultsWithConnectionStatus = (searchResults: Array<UserProfile>) => {
-    const allConnections = [
-      ...connections.pendingIncoming,
-      ...connections.pendingOutgoing,
-      ...connections.accepted,
-    ];
-
-    return searchResults.map(user => {
-      // Find if this user has a connection
-      const connection = allConnections.find(
-        c => c.requester.id === user.id || c.receiver.id === user.id
-      );
-
-      if (!connection) {
-        // No connection found, return as-is (will show "Add Friend")
-        return user;
-      }
-
-      // Determine connection status based on connection data
-      let connectionStatus: 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED';
-      let isPendingFromThem = false;
-
-      if (connection.status === 'PENDING') {
-        if (connection.receiverId === user.id) {
-          // I sent the request to them
-          connectionStatus = 'PENDING_SENT';
-          isPendingFromThem = false;
-        } else {
-          // They sent the request to me
-          connectionStatus = 'PENDING_RECEIVED';
-          isPendingFromThem = true;
-        }
-      } else {
-        // connection.status === 'ACCEPTED'
-        connectionStatus = 'ACCEPTED';
-      }
-
-      return {
-        ...user,
-        connectionStatus,
-        isPendingFromThem,
-        connectionId: connection.id,
-      };
-    });
-  };
 
   // Called by SearchBar when a result is clicked
   const handleSelectUserFromSearch = (user: UserProfile) => {
@@ -566,7 +520,6 @@ export function FriendsDiscoveryPage() {
           onAccept={async (connectionId) => { await handleAcceptConnection(connectionId); }}
           onCancel={async (connectionId) => { await handleCancelConnection(connectionId); }}
           optimisticStatusUpdates={optimisticStatusUpdates}
-          enrichSearchResults={enrichSearchResultsWithConnectionStatus}
         />
 
         {!suggestionsLoading && suggestions.length > 0 && (
