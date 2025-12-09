@@ -31,7 +31,7 @@ export function FriendsDiscoveryPage() {
     autoSync: true,
   });
 
-  const { suggestions, loading: suggestionsLoading } = useFriendSuggestions({
+  const { suggestions, loading: suggestionsLoading, refetch: refetchSuggestions } = useFriendSuggestions({
     limit: 10,
     minScore: 50,
     excludeConnections: true,
@@ -600,9 +600,15 @@ export function FriendsDiscoveryPage() {
                     </svg>
                   </div>
                   <p className="text-gray-300 font-medium mb-2">No suggestions available yet</p>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-gray-400 text-sm mb-4">
                     Connect your Spotify and sync your music to get personalized friend suggestions!
                   </p>
+                  <button
+                    onClick={() => refetchSuggestions()}
+                    className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-full transition-colors cursor-pointer"
+                  >
+                    Refresh Suggestions
+                  </button>
                 </div>
               </div>
             )}

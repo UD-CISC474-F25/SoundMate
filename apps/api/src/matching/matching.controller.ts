@@ -75,8 +75,16 @@ export class MatchingController {
           if (connection.status === 'ACCEPTED') {
             connectionStatus = 'ACCEPTED';
           } else if (connection.status === 'PENDING') {
-            connectionStatus = 'PENDING';
-            isPendingFromThem = connection.receiverId === user.id;
+            // Return specific pending status based on direction
+            if (connection.receiverId === suggestion.userId) {
+              // Current user sent the request
+              connectionStatus = 'PENDING_SENT';
+              isPendingFromThem = false;
+            } else {
+              // Current user received the request
+              connectionStatus = 'PENDING_RECEIVED';
+              isPendingFromThem = true;
+            }
           }
         }
 
