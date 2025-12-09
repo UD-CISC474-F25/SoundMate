@@ -64,7 +64,7 @@ export function EventModal({
     if (detailsRef.current) {
       setModalHeight(detailsRef.current.scrollHeight);
     }
-  }, [liveEvent]); 
+  }, [liveEvent, liveEvent.attendees, liveEvent._count]); 
 
   return (
     <div
@@ -106,7 +106,7 @@ export function EventModal({
         </div>
 
         <div className="relative h-full">
-          <SlideFade show={view === "details"}>
+          <SlideFade show={view === "details"} key={`details-${liveEvent.id}-${liveEvent.attendees?.length || 0}`}>
             <EventDetailsContent
               event={liveEvent}
               onEdit={onEdit}
@@ -121,7 +121,7 @@ export function EventModal({
             />
           </SlideFade>
 
-          <SlideFade show={view === "comments"}>
+          <SlideFade show={view === "comments"} key={`comments-${liveEvent.id}`}>
             <EventComments event={liveEvent} setView={setView} />
           </SlideFade>
         </div>
@@ -217,11 +217,16 @@ function EventDetailsContent({
         </div>
 
         <div className="flex gap-4 text-sm">
-          <span className="text-green-400">
-            {getAttendeeCount(event, "GOING")} going
+          <span className="text-white">
+            {(() => {
+              if (!event.attendees) return 0;
+              const going = event.attendees.filter(a => a.status === "GOING").length;
+              const maybe = event.attendees.filter(a => a.status === "MAYBE").length;
+              return going + maybe;
+            })()} attending
           </span>
-          <span className="text-yellow-400">
-            {getAttendeeCount(event, "MAYBE")} maybe
+          <span className="text-gray-400">
+            ({event.attendees?.filter(a => a.status === "GOING").length || 0} going, {event.attendees?.filter(a => a.status === "MAYBE").length || 0} maybe)
           </span>
         </div>
 
