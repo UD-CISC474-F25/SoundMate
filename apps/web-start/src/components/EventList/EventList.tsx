@@ -96,14 +96,14 @@ export function EventList({
                     )}
                   </div>
 
-                  {/* Artist / music tag */}
+                 {/* Artist / music tag */}
                   <div className="flex items-center gap-3 text-sm">
-                    {event.artist && (
+                   {/* {event.artist && (
                       <div className="flex items-center gap-1.5">
                         <span className="text-lg">🎵</span>
                         <span className="text-gray-400">{event.artist.name}</span>
                       </div>
-                    )}
+                    )} */}
                     {event.musicTag && (
                       <span className="px-2 py-0.5 bg-gray-800 text-gray-300 rounded text-xs">
                         {event.musicTag}

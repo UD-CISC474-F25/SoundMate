@@ -91,14 +91,14 @@ export function EventForm({
           onChange={(v) => updateField("dateTime", v)}
         />
 
-        <FormInput
+        {/*<FormInput
           id="artistId"
           label="Featured Artist"
           type="text"
           value={form.artistId || ''}
           placeholder="Artist name"
           onChange={(v) => updateField("artistId", v)}
-        />
+        />*/}
 
         {/* Description */}
         <div>

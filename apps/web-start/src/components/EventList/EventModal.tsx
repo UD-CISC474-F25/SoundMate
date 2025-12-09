@@ -177,7 +177,7 @@ function EventDetailsContent({
       )}
 
      
-      {event.artist && (
+      {/*{event.artist && (
         <div className="bg-white/10 border border-white/20 rounded-xl p-6 mb-4">
           <p className="text-gray-400 text-xs mb-1">Featured Artist</p>
           <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ function EventDetailsContent({
             <p className="text-white font-medium">{event.artist.name}</p>
           </div>
         </div>
-      )}
+      )}*/}
 
       
       <div className="grid grid-cols-2 gap-4 mb-4">
