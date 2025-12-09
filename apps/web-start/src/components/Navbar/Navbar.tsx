@@ -45,6 +45,11 @@ export function Navbar() {
     });
   };
 
+  // Don't render navbar on onboarding page
+  if (isOnboardingPage) {
+    return null;
+  }
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-6 pointer-events-none">
       <AuroraRay variant="warm" rounded="rounded-full">
@@ -56,8 +61,8 @@ export function Navbar() {
             <span className="text-xl font-bold text-white">SoundMate</span>
           </Link>
 
-        {/* Show hamburger only if authenticated OR not on landing page */}
-        {(isAuthenticated || !isLandingPage) && (
+        {/* Show hamburger only if authenticated OR not on landing page, and not on onboarding page */}
+        {(isAuthenticated || !isLandingPage) && !isOnboardingPage && (
           <button
             className="md:hidden p-2 text-gray-300 hover:text-white transition-colors cursor-pointer"
             onClick={() => setIsOpen(!isOpen)}
@@ -163,7 +168,7 @@ export function Navbar() {
         <div className="absolute top-16 left-6 right-6 md:hidden pointer-events-auto">
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 shadow-lg">
             <div className="flex flex-col gap-4">
-              {isAuthenticated ? (
+              {isAuthenticated && !isOnboardingPage ? (
                 <>
                   <Link
                     to="/"
@@ -203,7 +208,7 @@ export function Navbar() {
                     Log Out
                   </button>
                 </>
-              ) : (
+              ) : !isOnboardingPage ? (
                 <button
                   onClick={() => {
                     setIsOpen(false);
@@ -214,7 +219,7 @@ export function Navbar() {
                 >
                   {isLoading ? 'Loading...' : 'Login with Spotify'}
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
