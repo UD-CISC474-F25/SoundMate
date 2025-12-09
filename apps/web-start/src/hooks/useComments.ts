@@ -1,4 +1,4 @@
-import { useApiQuery, useApiMutation } from "../integrations/api";
+import { useApiMutation, useApiQuery } from "../integrations/api";
 
 export interface EventComment {
   id: string;

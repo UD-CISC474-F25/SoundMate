@@ -7,6 +7,7 @@ interface CreateEventFormProps {
     dateTime: string;
     description: string;
     musicTag: string;
+    artistId: string;
     visibility: "PUBLIC" | "PRIVATE";
     maxAttendees: string | number | null;
   };

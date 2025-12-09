@@ -65,7 +65,7 @@ export function EventModal({
     if (detailsRef.current) {
       setModalHeight(detailsRef.current.scrollHeight);
     }
-  }, [liveEvent]); 
+  }, [liveEvent, liveEvent.attendees, liveEvent._count]); 
 
   return (
     <div
@@ -74,7 +74,7 @@ export function EventModal({
     >
       <div
         className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg 
-                   max-w-lg w-full p-6 text-white relative overflow-hidden"
+                   max-w-lg w-full text-white relative flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
         style={{
           height: modalHeight ? `${modalHeight}px` : "auto",
@@ -83,7 +83,7 @@ export function EventModal({
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold"
+          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold cursor-pointer z-10"
         >
           &times;
         </button>
@@ -107,7 +107,7 @@ export function EventModal({
         </div>
 
         <div className="relative h-full">
-          <SlideFade show={view === "details"}>
+          <SlideFade show={view === "details"} key={`details-${liveEvent.id}-${liveEvent.attendees?.length || 0}`}>
             <EventDetailsContent
               event={liveEvent}
               onEdit={onEdit}
@@ -122,7 +122,7 @@ export function EventModal({
             />
           </SlideFade>
 
-          <SlideFade show={view === "comments"}>
+          <SlideFade show={view === "comments"} key={`comments-${liveEvent.id}`}>
             <EventComments event={liveEvent} setView={setView} />
           </SlideFade>
         </div>
@@ -145,9 +145,8 @@ function EventDetailsContent({
 }: EventDetailsProps) {
   return (
     <div className="p-6 pb-12">
-
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1 pr-4">
+      <div className="flex items-start justify-between mb-4 pr-8">
+        <div className="flex-1">
           <h2 className="text-2xl font-bold text-white mb-1">{event.title}</h2>
           <p className="text-gray-400 text-sm">
             by @{event.creator.displayName || event.creator.username}
@@ -158,14 +157,14 @@ function EventDetailsContent({
           <div className="flex gap-3">
             <button
               onClick={() => onEdit(event)}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-white cursor-pointer"
             >
               <Edit size={20} />
             </button>
             <button
               onClick={() => onDelete(event.id)}
               disabled={isDeleting}
-              className="text-gray-400 hover:text-red-400 disabled:opacity-50"
+              className="text-gray-400 hover:text-red-400 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               <Trash2 size={20} />
             </button>
@@ -174,17 +173,20 @@ function EventDetailsContent({
       </div>
 
       
-      {event.description && (
+      {event.description && event.description.trim() !== '' && (
         <p className="text-gray-300 mb-6 leading-relaxed">{event.description}</p>
       )}
 
      
-      {event.artist && (
+      {/*{event.artist && (
         <div className="bg-white/10 border border-white/20 rounded-xl p-6 mb-4">
           <p className="text-gray-400 text-xs mb-1">Featured Artist</p>
-          <p className="text-white font-medium">🎵 {event.artist.name}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🎵</span>
+            <p className="text-white font-medium">{event.artist.name}</p>
+          </div>
         </div>
-      )}
+      )}*/}
 
       
       <div className="grid grid-cols-2 gap-4 mb-4">
@@ -218,11 +220,16 @@ function EventDetailsContent({
         </div>
 
         <div className="flex gap-4 text-sm">
-          <span className="text-green-400">
-            {getAttendeeCount(event, "GOING")} going
+          <span className="text-white">
+            {(() => {
+              if (!event.attendees) return 0;
+              const going = event.attendees.filter(a => a.status === "GOING").length;
+              const maybe = event.attendees.filter(a => a.status === "MAYBE").length;
+              return going + maybe;
+            })()} attending
           </span>
-          <span className="text-yellow-400">
-            {getAttendeeCount(event, "MAYBE")} maybe
+          <span className="text-gray-400">
+            ({event.attendees?.filter(a => a.status === "GOING").length || 0} going, {event.attendees?.filter(a => a.status === "MAYBE").length || 0} maybe)
           </span>
         </div>
 
@@ -233,7 +240,7 @@ function EventDetailsContent({
         )}
       </div>
 
-      {event.musicTag && (
+      {event.musicTag && event.musicTag.trim() !== '' && (
         <div className="mb-6">
           <p className="text-gray-400 text-sm mb-2">Tags</p>
           <span className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-sm">
@@ -246,33 +253,33 @@ function EventDetailsContent({
         <button
           onClick={() => onRsvp(event.id, "GOING")}
           disabled={isRsvping}
-          className={`py-2 rounded-lg font-medium transition ${
+          className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "GOING"
-              ? "bg-green-500 text-white"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-          }`}
+              ? "bg-green-500 text-white scale-105 shadow-sm shadow-green-500/50"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
+          } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
           Going
         </button>
         <button
           onClick={() => onRsvp(event.id, "MAYBE")}
           disabled={isRsvping}
-          className={`py-2 rounded-lg font-medium transition ${
+          className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "MAYBE"
-              ? "bg-yellow-500 text-black"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-          }`}
+              ? "bg-yellow-500 text-white scale-105 shadow-sm shadow-yellow-500/50"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
+          } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
           Maybe
         </button>
         <button
           onClick={() => onRsvp(event.id, "DECLINED")}
           disabled={isRsvping}
-          className={`py-2 rounded-lg font-medium transition ${
+          className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "DECLINED"
-              ? "bg-red-500/20 text-red-400"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-          }`}
+              ? "bg-red-500/50 text-white scale-105 shadow-sm shadow-red-500/50"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
+          } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
           Can't Go
         </button>
@@ -281,7 +288,7 @@ function EventDetailsContent({
       <button
         onClick={() => setView("comments")}
         className="w-full bg-white/10 border border-white/20 rounded-xl p-4 
-                   transition cursor-pointer mb-6 "
+                   transition cursor-pointer mb-6 hover:bg-white/15 hover:scale-[1.02]"
       >
         See Comments ({event._count.comments})
       </button>
@@ -310,64 +317,67 @@ function EventComments({ event, setView }: EventCommentsProps) {
   };
 
   return (
-    <div className="p-6 pb-12 flex flex-col h-full">
+    <div className="p-6 flex flex-col min-h-full">
       <button
         onClick={() => setView("details")}
-        className="self-start text-gray-300 hover:text-white mb-4"
+        className="self-start text-gray-300 hover:text-white mb-4 cursor-pointer"
       >
         ← Back
       </button>
 
-
       <h2 className="text-2xl font-bold mb-4">Comments</h2>
 
-      <div className="flex-1 overflow-y-auto pr-2 modal-scroll">
-          {commentsLoading ? (
-            <p className="text-gray-400">Loading...</p>
-          ) : comments.length === 0 ? (
-            <p className="text-gray-400">No comments yet.</p>
-          ) : (
-            comments.map((c) => (
+      <div className="flex-1 mb-4">
+        {commentsLoading ? (
+          <p className="text-gray-400">Loading...</p>
+        ) : comments.length === 0 ? (
+          <p className="text-gray-400">No comments yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {comments.map((c) => (
               <div
                 key={c.id}
-                className="bg-white/10 border border-white/20 rounded-lg p-3 mb-3"
+                className="bg-white/10 border border-white/20 rounded-lg p-3"
               >
-                
-              <div className="flex items-center justify-between">
                 <p className="font-semibold text-sm">
                   @{c.user.displayName || c.user.username}
                 </p>
+                <p className="text-sm mt-1">{c.content}</p>
 
                 {isAuthenticated && user && c.user.auth0Id === user.sub && (
-                  <button
-                    onClick={() => deleteComment(event.id, c.id)}
-                    disabled={isDeleting}
-                    className="text-xs text-red-400 hover:text-red-300"
-                  >
-                    Delete
-                  </button>
+                    <button
+                      onClick={() => deleteComment(event.id, c.id)}
+                      disabled={isDeleting}
+                      className="text-xs text-red-400 hover:text-red-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
                 )}
               </div>
               <p className="text-sm mt-1">{c.content}</p>
-            </div>
-          ))
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Write a comment..."
-        className="w-full bg-white/10 px-3 py-2 rounded-md mt-4"
-      />
+      <div className="mt-auto pt-4">
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Write a comment..."
+          className="w-full bg-white/10 px-3 py-2 rounded-md cursor-text border border-white/20 text-white placeholder-gray-400 resize-none"
+          rows={3}
+        />
 
-      <button
-        onClick={postComment}
-        disabled={isAdding}
-        className="w-full py-3 bg-white text-black rounded-lg mt-4 disabled:opacity-50"
-      >
-        {isAdding ? "Posting..." : "Post Comment"}
-      </button>
+        <button
+          onClick={postComment}
+          disabled={isAdding || !content.trim()}
+          className="w-full py-3 bg-white text-black rounded-lg mt-3 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed hover:bg-gray-100 transition font-medium"
+        >
+          {isAdding ? "Posting..." : "Post Comment"}
+        </button>
+      </div>
     </div>
   );
 }

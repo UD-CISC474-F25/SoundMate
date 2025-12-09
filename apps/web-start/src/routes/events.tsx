@@ -4,7 +4,6 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { Plus } from 'lucide-react';
 import { useEvents } from '../hooks/useEvents';
 import { TypewriterText } from '../components/Animations';
-
 import { EventList } from '../components/EventList/EventList';
 import { CreateEventForm } from '../components/EventForm/CreateEventForm';
 import { EditEventForm } from '../components/EventForm/EditEventForm';
@@ -174,35 +173,32 @@ function EventsPage() {
             isRsvping={isRsvping}
             getUserRsvpStatus={getUserRsvpStatus}
             getAttendeeCount={(event, status) => {
-              return event._count.attendees?.[status.toLowerCase()] || 0;
+              if (!event.attendees) return 0;
+              return event.attendees.filter((a: any) => a.status === status).length;
             }}
           />
         )}
 
         {/* CREATE EVENT MODAL */}
         {showCreateModal && (
-          <Modal onClose={closeCreateModal}>
-            <CreateEventForm
-              form={createForm}
-              updateField={(field: string, value: string) => updateFormField(field as any, value as any)}
-              onSubmit={submitCreateEvent}
-              onCancel={closeCreateModal}
-              isSaving={isCreating}
-            />
-          </Modal>
+          <CreateEventForm
+            form={createForm}
+            updateField={(field: string, value: string) => updateFormField(field as any, value as any)}
+            onSubmit={submitCreateEvent}
+            onCancel={closeCreateModal}
+            isSaving={isCreating}
+          />
         )}
 
         {/* EDIT EVENT MODAL */}
         {showEditModal && (
-          <Modal onClose={closeEditModal}>
-            <EditEventForm
-              form={createForm}
-              updateField={(field: string, value: string) => updateFormField(field as any, value as any)}
-              onSubmit={submitUpdateEvent}
-              onCancel={closeEditModal}
-              isSaving={isUpdating}
-            />
-          </Modal>
+          <EditEventForm
+            form={createForm}
+            updateField={(field: string, value: string) => updateFormField(field as any, value as any)}
+            onSubmit={submitUpdateEvent}
+            onCancel={closeEditModal}
+            isSaving={isUpdating}
+          />
         )}
       </div>
     </div>
