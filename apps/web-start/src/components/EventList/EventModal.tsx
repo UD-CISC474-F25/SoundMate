@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Clock, Edit, MapPin, Trash2, Users } from "lucide-react";
-import type { Event } from "../../hooks/useEvents";
 import { useEvents } from "../../hooks/useEvents";
 import { useComments } from "../../hooks/useComments";
 import { SlideFade } from "../Animations";
+import type { Event } from "../../hooks/useEvents";
 
 interface EventModalProps {
   event: Event;
