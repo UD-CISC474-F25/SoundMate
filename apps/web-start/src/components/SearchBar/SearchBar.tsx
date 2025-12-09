@@ -12,6 +12,11 @@ interface SearchBarProps {
   onConnect: (userId: string) => void;
   onAccept: (connectionId: string) => void;
   onCancel: (connectionId: string) => void;
+  optimisticStatusUpdates?: Map<string, {
+    connectionStatus: 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED';
+    connectionId?: string;
+  }>;
+  enrichSearchResults?: (users: Array<UserProfile>) => Array<UserProfile>;
 }
 
 export default function SearchBar({
@@ -21,9 +26,22 @@ export default function SearchBar({
   onConnect,
   onAccept,
   onCancel,
+  optimisticStatusUpdates,
+  enrichSearchResults,
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
-  const { users, loading, error } = useUserSearch(query);
+  const { users: rawUsers, loading, error } = useUserSearch(query);
+
+  // Enrich search results with connection status from loaded connections
+  const users = enrichSearchResults ? enrichSearchResults(rawUsers) : rawUsers;
+
+  // Debug: log search results to see connection status
+  if (users.length > 0) {
+    console.log('[SearchBar] Enriched search results:', users);
+    console.log('[SearchBar] First user connectionStatus:', users[0]?.connectionStatus);
+    console.log('[SearchBar] First user isPendingFromThem:', users[0]?.isPendingFromThem);
+    console.log('[SearchBar] First user connectionId:', users[0]?.connectionId);
+  }
 
   const handleClearSearch = () => {
     setQuery("");
@@ -83,31 +101,39 @@ export default function SearchBar({
           {/* User Results */}
           {!error && users.length > 0 && (
             <ul className="space-y-3">
-              {users.map((user) => (
-                <li
-                  key={user.id}
+              {users.map((user) => {
+                // Apply optimistic updates if they exist
+                const optimisticUpdate = optimisticStatusUpdates?.get(user.id);
+                const displayUser = optimisticUpdate ? {
+                  ...user,
+                  connectionStatus: optimisticUpdate.connectionStatus,
+                  connectionId: optimisticUpdate.connectionId ?? user.connectionId,
+                } : user;
+
+                return (<li
+                  key={displayUser.id}
                   className="p-4 rounded-xl bg-white/5 hover:bg-white/10 active:bg-white/15 
                   transition-all duration-200 border border-white/10 hover:border-white/20 
                   hover:shadow-lg group"
                 >
                   <div
                     className="flex items-center gap-4 cursor-pointer mb-3"
-                    onClick={() => onSelectUser?.(user)}
+                    onClick={() => onSelectUser?.(displayUser)}
                   >
-                    {(user.avatar || user.profilePhotoUrl) ? (
+                    {(displayUser.avatar || displayUser.profilePhotoUrl) ? (
                       <img
-                        src={user.avatar || user.profilePhotoUrl || ""}
-                        alt={user.displayName || user.username}
+                        src={displayUser.avatar || displayUser.profilePhotoUrl || ""}
+                        alt={displayUser.displayName || displayUser.username}
                         className="w-16 h-16 rounded-full object-cover flex-shrink-0 
                         ring-2 ring-white/10 group-hover:ring-white/30 transition-all duration-200"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br 
-                      from-purple-500 to-pink-500 flex items-center justify-center 
-                      flex-shrink-0 ring-2 ring-white/10 group-hover:ring-white/30 
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br
+                      from-purple-500 to-pink-500 flex items-center justify-center
+                      flex-shrink-0 ring-2 ring-white/10 group-hover:ring-white/30
                       transition-all duration-200">
                         <span className="text-white font-bold text-2xl">
-                          {(user.displayName || user.username)
+                          {(displayUser.displayName || displayUser.username)
                             .charAt(0)
                             .toUpperCase()}
                         </span>
@@ -116,32 +142,32 @@ export default function SearchBar({
 
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-white text-lg truncate group-hover:text-white/90">
-                        {user.displayName || user.username}
+                        {displayUser.displayName || displayUser.username}
                       </p>
                       <p className="text-gray-400 text-base truncate">
-                        @{user.username}
+                        @{displayUser.username}
                       </p>
                     </div>
 
-                    {user.compatibilityScore !== undefined && (
-                      <div className="text-green-400 text-base font-semibold 
+                    {displayUser.compatibilityScore !== undefined && (
+                      <div className="text-green-400 text-base font-semibold
                       flex-shrink-0 bg-green-400/10 px-4 py-2 rounded-full">
-                        {user.compatibilityScore}% match
+                        {displayUser.compatibilityScore}% match
                       </div>
                     )}
                   </div>
 
                   {/* Connection Button */}
                   <ConnectionButton
-                    connectionStatus={getUserConnectionStatus(user)}
-                    connectionId={user.connectionId || undefined}
-                    userId={user.id}
+                    connectionStatus={getUserConnectionStatus(displayUser)}
+                    connectionId={displayUser.connectionId || undefined}
+                    userId={displayUser.id}
                     onConnect={onConnect}
                     onAccept={onAccept}
                     onCancel={onCancel}
                   />
-                </li>
-              ))}
+                </li>)
+              })}
             </ul>
           )}
 

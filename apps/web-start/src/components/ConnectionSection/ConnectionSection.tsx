@@ -73,6 +73,12 @@ export function ConnectionSection({
             connectionStatus = 'ACCEPTED';
           }
 
+          // Get shared artists if available
+          const connSharedArtists = (conn as any).sharedArtists;
+          const sharedArtists = connSharedArtists && Array.isArray(connSharedArtists)
+            ? connSharedArtists.map((a: any) => ({ id: a.id, name: a.name, imageUrl: a.imageUrl }))
+            : [];
+
           return {
             id: user.id,
             profilePicture: user.profilePhotoUrl,
@@ -83,10 +89,11 @@ export function ConnectionSection({
             connectionStatus,
             isPendingFromThem: type === 'incoming',
             connectionId: conn.id,
+            sharedArtists,
           };
         })}
         onUserClick={(userItem) => onUserClick(userItem.id)}
-        onConnect={() => {}}
+        onConnect={async () => {}}
         onAcceptConnection={onAcceptConnection}
         onCancelConnection={onCancelConnection}
       />
