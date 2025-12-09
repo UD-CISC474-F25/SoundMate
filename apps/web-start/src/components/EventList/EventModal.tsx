@@ -106,7 +106,7 @@ export function EventModal({
           />
         </div>
 
-        <div className="relative h-full overflow-y-hidden">
+        <div className="relative h-full overflow-y-auto">
           <SlideFade show={view === "details"} key={`details-${liveEvent.id}-${liveEvent.attendees?.length || 0}`}>
             <EventDetailsContent
               event={liveEvent}

@@ -19,6 +19,7 @@ import { useAccountDelete } from '../hooks/useAccountDelete';
 import { useProfileLinks } from '../hooks/useProfileLinks';
 import { useSpotifySync } from '../hooks/useSpotifySync';
 import { useEvents } from '../hooks/useEvents';
+import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
 import { LinkForm } from '../components/LinkForm/LinkForm';
 import { APP_CONFIG } from '../constants/app';
 import { useQueryClient } from '@tanstack/react-query';
@@ -65,6 +66,7 @@ type TimeRange = 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
 
 function ProfilePage() {
   const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
+  const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('created');
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('SHORT_TERM');
@@ -175,7 +177,18 @@ function ProfilePage() {
       )
   );
 
-  if ((authLoading || !isAuthenticated) || (!user && isLoading)) {
+  if (authLoading || !isAuthenticated || isCheckingOnboarding || needsOnboarding) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && isLoading) {
     return (
       <div className="min-h-screen bg-black pt-28 px-6">
         <LoadingSpinner fullScreen message="Loading profile..." />
@@ -259,7 +272,7 @@ function ProfilePage() {
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-8">
 
             <div className="mb-6">
-              <div className="mb-3 flex items-center justify-between flex-wrap gap-3">
+              <div className="mb-3">
                 <FilterTabs
                   tabs={[
                     { value: 'SHORT_TERM', label: APP_CONFIG.TIME_RANGES.SHORT_TERM.label },
@@ -269,24 +282,6 @@ function ProfilePage() {
                   activeTab={selectedTimeRange}
                   onChange={(value) => setSelectedTimeRange(value as TimeRange)}
                 />
-                {spotifySync.hasSpotifyConnected && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleSyncSpotify(false)}
-                      disabled={spotifySync.isSyncing || !spotifySync.shouldSync}
-                      className="px-3 py-1.5 text-sm border border-green-500/50 text-green-400 rounded-lg hover:bg-green-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      title={spotifySync.shouldSync ? 'Sync Spotify data' : 'Sync available in ' + (spotifySync.timeUntilNextSync?.hours || 0) + 'h ' + (spotifySync.timeUntilNextSync?.minutes || 0) + 'm'}
-                    >
-                      <svg className={`w-4 h-4 ${spotifySync.isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      {spotifySync.isSyncing ? 'Syncing...' : 'Sync Spotify'}
-                    </button>
-                    {spotifySync.syncMessage && (
-                      <p className="text-xs text-gray-400">{spotifySync.syncMessage}</p>
-                    )}
-                  </div>
-                )}
               </div>
 
               <p className="text-sm text-gray-400 ">
