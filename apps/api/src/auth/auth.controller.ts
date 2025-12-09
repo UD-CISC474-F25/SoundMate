@@ -175,10 +175,10 @@ export class AuthController {
       }
 
 
-      res.redirect(`${process.env.FRONTEND_URL}/discover?spotify=connected`);
+      res.redirect(`${process.env.FRONTEND_URL}/profile?spotify=connected`);
     } catch (error) {
       console.error('Spotify callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/discover?spotify=error`);
+      res.redirect(`${process.env.FRONTEND_URL}/profile?spotify=error`);
     }
   }
 
