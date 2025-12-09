@@ -73,7 +73,7 @@ export function EventModal({
     >
       <div
         className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg 
-                   max-w-lg w-full p-6 text-white relative overflow-hidden"
+                   max-w-lg w-full text-white relative flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
         style={{
           height: modalHeight ? `${modalHeight}px` : "auto",
@@ -82,7 +82,7 @@ export function EventModal({
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold cursor-pointer"
+          className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold cursor-pointer z-10"
         >
           &times;
         </button>
@@ -144,9 +144,8 @@ function EventDetailsContent({
 }: EventDetailsProps) {
   return (
     <div className="p-6 pb-12">
-
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1 pr-4">
+      <div className="flex items-start justify-between mb-4 pr-8">
+        <div className="flex-1">
           <h2 className="text-2xl font-bold text-white mb-1">{event.title}</h2>
           <p className="text-gray-400 text-sm">
             by @{event.creator.displayName || event.creator.username}
@@ -277,7 +276,7 @@ function EventDetailsContent({
           disabled={isRsvping}
           className={`py-2 rounded-lg font-medium transition-all duration-300 cursor-pointer disabled:cursor-not-allowed ${
             getUserRsvpStatus(event) === "DECLINED"
-              ? "bg-red-500/50 text-white-400 scale-105 shadow-lg shadow-red-500/50"
+              ? "bg-red-500/50 text-white scale-105 shadow-lg shadow-red-500/50"
               : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105"
           } ${isRsvping ? "opacity-50 animate-pulse" : ""}`}
         >
@@ -315,7 +314,7 @@ function EventComments({ event, setView }: EventCommentsProps) {
   };
 
   return (
-    <div className="p-6 pb-12 flex flex-col h-full">
+    <div className="p-6 flex flex-col min-h-full">
       <button
         onClick={() => setView("details")}
         className="self-start text-gray-300 hover:text-white mb-4 cursor-pointer"
@@ -325,48 +324,53 @@ function EventComments({ event, setView }: EventCommentsProps) {
 
       <h2 className="text-2xl font-bold mb-4">Comments</h2>
 
-      <div className="flex-1 overflow-y-auto pr-2 modal-scroll">
+      <div className="flex-1 mb-4">
         {commentsLoading ? (
           <p className="text-gray-400">Loading...</p>
         ) : comments.length === 0 ? (
           <p className="text-gray-400">No comments yet.</p>
         ) : (
-          comments.map((c) => (
-            <div
-              key={c.id}
-              className="bg-white/10 border border-white/20 rounded-lg p-3 mb-3"
-            >
-              <p className="font-semibold text-sm">
-                @{c.user.displayName || c.user.username}
-              </p>
-              <p className="text-sm">{c.content}</p>
-
-              <button
-                onClick={() => deleteComment(event.id, c.id)}
-                disabled={isDeleting}
-                className="text-xs text-red-400 mt-2 hover:text-red-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          <div className="space-y-3">
+            {comments.map((c) => (
+              <div
+                key={c.id}
+                className="bg-white/10 border border-white/20 rounded-lg p-3"
               >
-                Delete
-              </button>
-            </div>
-          ))
+                <p className="font-semibold text-sm">
+                  @{c.user.displayName || c.user.username}
+                </p>
+                <p className="text-sm mt-1">{c.content}</p>
+
+                <button
+                  onClick={() => deleteComment(event.id, c.id)}
+                  disabled={isDeleting}
+                  className="text-xs text-red-400 mt-2 hover:text-red-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Write a comment..."
-        className="w-full bg-white/10 px-3 py-2 rounded-md mt-4 cursor-text"
-      />
+      <div className="mt-auto pt-4">
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Write a comment..."
+          className="w-full bg-white/10 px-3 py-2 rounded-md cursor-text border border-white/20 text-white placeholder-gray-400 resize-none"
+          rows={3}
+        />
 
-      <button
-        onClick={postComment}
-        disabled={isAdding}
-        className="w-full py-3 bg-white text-black rounded-lg mt-4 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed hover:bg-gray-100 transition"
-      >
-        {isAdding ? "Posting..." : "Post Comment"}
-      </button>
+        <button
+          onClick={postComment}
+          disabled={isAdding || !content.trim()}
+          className="w-full py-3 bg-white text-black rounded-lg mt-3 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed hover:bg-gray-100 transition font-medium"
+        >
+          {isAdding ? "Posting..." : "Post Comment"}
+        </button>
+      </div>
     </div>
   );
 }
