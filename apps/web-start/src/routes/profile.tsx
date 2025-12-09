@@ -585,15 +585,19 @@ function ProfilePage() {
       )}
 
       {/* Edit Event Modal */}
+      
       {eventsHook.showEditModal && eventsHook.editingEvent && (
-        <EditEventForm
-          form={eventsHook.createForm}
-          updateField={eventsHook.updateFormField}
-          onSubmit={eventsHook.submitUpdateEvent}
-          onCancel={eventsHook.closeEditModal}
-          isSaving={eventsHook.isUpdating}
-        />
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <EditEventForm
+            form={eventsHook.createForm}
+            updateField={eventsHook.updateFormField}
+            onSubmit={eventsHook.submitUpdateEvent}
+            onCancel={eventsHook.closeEditModal}
+            isSaving={eventsHook.isUpdating}
+          />
+        </div>
       )}
+      
 
       {/* Delete Account Confirmation Modal */}
       {accountDelete.showDeleteModal && (
