@@ -233,11 +233,77 @@ export class UsersService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Return users without compatibility scores for search
-    // Real compatibility scores are calculated by the MatchingService for suggestions
-    return users.map((user) => ({
-      ...user,
-      compatibilityScore: undefined, // No score for search results
-    }));
+    // Fetch all connections for the current user to determine connection status
+    const connections = await this.prisma.connection.findMany({
+      where: {
+        OR: [
+          { requesterId: currentUserId },
+          { receiverId: currentUserId },
+        ],
+      },
+      select: {
+        id: true,
+        requesterId: true,
+        receiverId: true,
+        status: true,
+      },
+    });
+
+    // Create a map of userId -> connection info for quick lookup
+    const connectionMap = new Map<string, { connectionId: string; status: string; isRequester: boolean }>();
+    for (const conn of connections) {
+      const otherUserId = conn.requesterId === currentUserId ? conn.receiverId : conn.requesterId;
+      connectionMap.set(otherUserId, {
+        connectionId: conn.id,
+        status: conn.status,
+        isRequester: conn.requesterId === currentUserId,
+      });
+    }
+
+    // Return users with connection status included
+    const result = users.map((user) => {
+      const connection = connectionMap.get(user.id);
+
+      if (!connection) {
+        // No connection exists
+        return {
+          ...user,
+          compatibilityScore: undefined,
+          connectionStatus: 'NONE',
+          isPendingFromThem: false,
+          connectionId: null,
+        };
+      }
+
+      // Determine connection status
+      let connectionStatus: 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED';
+      let isPendingFromThem = false;
+
+      if (connection.status === 'PENDING') {
+        if (connection.isRequester) {
+          // Current user sent the request
+          connectionStatus = 'PENDING_SENT';
+          isPendingFromThem = false;
+        } else {
+          // Current user received the request
+          connectionStatus = 'PENDING_RECEIVED';
+          isPendingFromThem = true;
+        }
+      } else {
+        // status === 'ACCEPTED'
+        connectionStatus = 'ACCEPTED';
+        isPendingFromThem = false;
+      }
+
+      return {
+        ...user,
+        compatibilityScore: undefined,
+        connectionStatus,
+        isPendingFromThem,
+        connectionId: connection.connectionId,
+      };
+    });
+
+    return result;
   }
 }
