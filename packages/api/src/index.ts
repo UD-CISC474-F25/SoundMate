@@ -12,6 +12,7 @@ export {
   UsersListFilter,
   TopArtistOut,
   TimeRangeEnum,
+  TasteProfileIn,
 } from './users';
 
 // Export event schemas

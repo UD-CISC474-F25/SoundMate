@@ -50,7 +50,6 @@ export const ROUTES = {
   EVENTS: '/events',
   PROFILE: '/profile',
   ONBOARDING: '/onboarding',
-  DASHBOARD: '/dashboard'
 } as const;
 
 export const API_ENDPOINTS = {

@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { FormInput } from '../components/FormInput/FormInput';
 import { FormTextarea } from '../components/FormTextarea/FormTextarea';
-import { useApiClient, useApiMutation } from '../integrations/api';
+import { useApiMutation } from '../integrations/api';
 import { LAYOUT, SPACING } from '../constants/layout';
 
 export const Route = createFileRoute('/onboarding')({
@@ -12,7 +13,8 @@ export const Route = createFileRoute('/onboarding')({
 
 function OnboardingPage() {
   const { user, isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
-  const { request } = useApiClient();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const hasJustAuthenticated = window.location.search.includes('code=') || window.location.search.includes('state=');
@@ -49,12 +51,18 @@ function OnboardingPage() {
       setLoadingMessage('Saving your profile...');
       await completeOnboarding.mutateAsync(formData);
 
-      setLoadingMessage('Connecting to Spotify...');
-      setIsRedirecting(true);
-      const { authUrl } = await request<{ authUrl: string }>('/auth/spotify/auth-url');
+      // The cached /users/me response (fetched before onboarding, with
+      // isOnboarded: false) is otherwise reused for up to 5 minutes —
+      // without this, logging out and back in shortly after onboarding
+      // bounces you right back here even though the server is correct.
+      await queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
 
-      setLoadingMessage('Creating profile...');
-      window.location.href = authUrl;
+      // Spotify is optional from here on — connecting it (or building a
+      // taste profile manually) happens on the profile page, so everyone
+      // can finish onboarding regardless of Spotify's dev-mode allowlist.
+      setLoadingMessage('Taking you to your profile...');
+      setIsRedirecting(true);
+      void navigate({ to: '/profile' });
     } catch (error) {
       console.error('Onboarding failed:', error);
       setIsRedirecting(false);

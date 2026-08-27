@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Avatar } from '../Avatar/Avatar';
 import { AuroraRay } from '../Animations';
+import { SpotifyGateModal } from '../SpotifyGateModal/SpotifyGateModal';
 import { useApiQuery } from '../../integrations/api';
 
 type UserProfile = {
@@ -13,6 +15,8 @@ type UserProfile = {
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showSpotifyGate, setShowSpotifyGate] = useState(false);
+  const queryClient = useQueryClient();
   const {
     isAuthenticated,
     isLoading,
@@ -32,12 +36,48 @@ export function Navbar() {
   const isLandingPage = typeof window !== 'undefined' && window.location.pathname === '/';
 
   const handleLogin = () => {
+    // Spotify is still in developer mode (Spotify caps this at 25
+    // manually-approved accounts), so route everyone through a quick
+    // gate that explains the allowlist and offers a Spotify-free way in.
+    setShowSpotifyGate(true);
+  };
+
+  const continueWithSpotify = () => {
+    setShowSpotifyGate(false);
     loginWithRedirect({
       appState: { returnTo: '/profile' }
     });
   };
 
+  const continueWithoutSpotify = () => {
+    setShowSpotifyGate(false);
+    loginWithRedirect({
+      authorizationParams: {
+        connection: 'Username-Password-Authentication',
+        screen_hint: 'signup',
+        // Force a fresh login screen instead of silently reusing an
+        // existing Auth0 SSO session (e.g. from a prior Spotify login in
+        // this browser) — without this, an active session skips straight
+        // past the connection we asked for and back into the old account.
+        prompt: 'login',
+      },
+      // NOT `returnTo: '/onboarding'` — this same "Continue without
+      // Spotify" button is also how a returning user logs back in (via the
+      // "Log in" link on Auth0's signup screen). Auth0's SDK honors
+      // `appState.returnTo` unconditionally, so hardcoding /onboarding
+      // here was sending already-onboarded users straight back to the
+      // onboarding form on every login. Land on /profile like every other
+      // login path instead; useOnboardingRedirect already sends genuinely
+      // new users on to /onboarding from there.
+      appState: { returnTo: '/profile' },
+    });
+  };
+
   const handleLogout = () => {
+    // Otherwise the next person to log in on this browser (or the same
+    // person logging back in) can briefly see the previous session's
+    // cached /users/me, profile, and other query data.
+    queryClient.clear();
     auth0Logout({
       logoutParams: {
         returnTo: window.location.origin
@@ -51,6 +91,7 @@ export function Navbar() {
   }
 
   return (
+    <>
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-6 pointer-events-none">
       <AuroraRay variant="warm" rounded="rounded-full">
         <nav className="flex items-center justify-between gap-4 px-6 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full shadow-lg pointer-events-auto transition-all duration-300 hover:bg-white/15 hover:shadow-xl">
@@ -100,7 +141,7 @@ export function Navbar() {
             className="md:hidden px-5 py-2 text-sm font-medium bg-white text-black rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
             disabled={isLoading}
           >
-            {isLoading ? 'Loading...' : 'Login with Spotify'}
+            {isLoading ? 'Loading...' : 'Log In'}
           </button>
         )}
 
@@ -157,7 +198,7 @@ export function Navbar() {
               className="px-5 py-2 text-sm font-medium bg-white text-black rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Login with Spotify'}
+              {isLoading ? 'Loading...' : 'Log In'}
             </button>
           )}
         </div>
@@ -217,7 +258,7 @@ export function Navbar() {
                   className="w-full px-5 py-2 text-sm font-medium bg-white text-black rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Loading...' : 'Login with Spotify'}
+                  {isLoading ? 'Loading...' : 'Log In'}
                 </button>
               ) : null}
             </div>
@@ -225,5 +266,13 @@ export function Navbar() {
         </div>
       )}
     </header>
+
+    <SpotifyGateModal
+      isOpen={showSpotifyGate}
+      onClose={() => setShowSpotifyGate(false)}
+      onContinueWithSpotify={continueWithSpotify}
+      onContinueWithoutSpotify={continueWithoutSpotify}
+    />
+    </>
   );
 }

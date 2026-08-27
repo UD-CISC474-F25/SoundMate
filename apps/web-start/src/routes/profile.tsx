@@ -12,6 +12,8 @@ import { Modal } from '../components/Modal/Modal';
 import { FormInput } from '../components/FormInput/FormInput';
 import { FormTextarea } from '../components/FormTextarea/FormTextarea';
 import { EditEventForm } from '../components/EventForm/EditEventForm';
+import { TasteProfileForm } from '../components/TasteProfileForm/TasteProfileForm';
+import { SpotifyGateModal } from '../components/SpotifyGateModal/SpotifyGateModal';
 import { AuroraRay } from '../components/Animations';
 import { useApiClient, useApiQuery } from '../integrations/api';
 import { useProfileEdit } from '../hooks/useProfileEdit';
@@ -20,6 +22,7 @@ import { useProfileLinks } from '../hooks/useProfileLinks';
 import { useSpotifySync } from '../hooks/useSpotifySync';
 import { useEvents } from '../hooks/useEvents';
 import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
+import { useTasteProfile } from '../hooks/useTasteProfile';
 import { LinkForm } from '../components/LinkForm/LinkForm';
 import { APP_CONFIG } from '../constants/app';
 import { useQueryClient } from '@tanstack/react-query';
@@ -31,6 +34,7 @@ export const Route = createFileRoute('/profile')({
 type UserProfile = {
   id: string;
   email?: string | null;
+  spotifyId?: string | null;
   username?: string | null;
   displayName?: string | null;
   bio?: string | null;
@@ -68,6 +72,7 @@ function ProfilePage() {
   const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0();
   const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showSpotifyGate, setShowSpotifyGate] = useState(false);
   const [activeTab, setActiveTab] = useState('created');
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('SHORT_TERM');
   const { request } = useApiClient();
@@ -119,6 +124,9 @@ function ProfilePage() {
   const profileLinks = useProfileLinks();
   const spotifySync = useSpotifySync();
   const eventsHook = useEvents();
+  const tasteProfile = useTasteProfile();
+
+  const hasTasteProfile = !!user && ((user.topArtists?.length ?? 0) > 0 || (user.topGenres?.length ?? 0) > 0);
 
   const handleConnectSpotify = async () => {
     try {
@@ -271,30 +279,59 @@ function ProfilePage() {
         <AuroraRay className="mb-6">
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-8">
 
-            <div className="mb-6">
-              <div className="mb-3">
-                <FilterTabs
-                  tabs={[
-                    { value: 'SHORT_TERM', label: APP_CONFIG.TIME_RANGES.SHORT_TERM.label },
-                    { value: 'MEDIUM_TERM', label: APP_CONFIG.TIME_RANGES.MEDIUM_TERM.label },
-                    { value: 'LONG_TERM', label: APP_CONFIG.TIME_RANGES.LONG_TERM.label },
-                  ]}
-                  activeTab={selectedTimeRange}
-                  onChange={(value) => setSelectedTimeRange(value as TimeRange)}
-                />
+            {hasTasteProfile ? (
+              <>
+                <div className="mb-6">
+                  <div className="mb-3">
+                    <FilterTabs
+                      tabs={[
+                        { value: 'SHORT_TERM', label: APP_CONFIG.TIME_RANGES.SHORT_TERM.label },
+                        { value: 'MEDIUM_TERM', label: APP_CONFIG.TIME_RANGES.MEDIUM_TERM.label },
+                        { value: 'LONG_TERM', label: APP_CONFIG.TIME_RANGES.LONG_TERM.label },
+                      ]}
+                      activeTab={selectedTimeRange}
+                      onChange={(value) => setSelectedTimeRange(value as TimeRange)}
+                    />
+                  </div>
+
+                  <p className="text-sm text-gray-400 ">
+                    {APP_CONFIG.TIME_RANGES[selectedTimeRange].description}
+                  </p>
+                </div>
+
+                {user.topArtists && user.topSongs && user.topGenres && (
+                  <ProfileCardSwitcher
+                    topArtists={user.topArtists}
+                    topSongs={user.topSongs}
+                    topGenres={user.topGenres}
+                  />
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <h3 className="text-xl font-semibold text-white mb-2">Build your music taste profile</h3>
+                <p className="text-gray-400 text-sm max-w-md mx-auto mb-6">
+                  Matching and friend suggestions are locked until you add a taste
+                  profile — connect Spotify to import it automatically, or build
+                  one by hand in under a minute.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    onClick={() => setShowSpotifyGate(true)}
+                    className="px-6 py-2.5 bg-white text-black font-semibold rounded-full hover:scale-105 transition-all shadow-lg cursor-pointer"
+                  >
+                    Connect Spotify
+                  </button>
+                  {!user.spotifyId && (
+                    <button
+                      onClick={tasteProfile.openModal}
+                      className="px-6 py-2.5 border-2 border-white/40 text-white font-semibold rounded-full hover:bg-white/10 hover:border-white/60 transition-all cursor-pointer"
+                    >
+                      Build Taste Profile Manually
+                    </button>
+                  )}
+                </div>
               </div>
-
-              <p className="text-sm text-gray-400 ">
-                {APP_CONFIG.TIME_RANGES[selectedTimeRange].description}
-              </p>
-            </div>
-
-            {user.topArtists && user.topSongs && user.topGenres && (
-              <ProfileCardSwitcher
-                topArtists={user.topArtists}
-                topSongs={user.topSongs}
-                topGenres={user.topGenres}
-              />
             )}
 
           </div>
@@ -649,6 +686,33 @@ function ProfilePage() {
             onSubmit={profileLinks.submitLink}
             onCancel={profileLinks.closeModal}
             isSubmitting={profileLinks.isSubmitting}
+          />
+        </Modal>
+      )}
+
+      <SpotifyGateModal
+        isOpen={showSpotifyGate}
+        onClose={() => setShowSpotifyGate(false)}
+        onContinueWithSpotify={() => {
+          setShowSpotifyGate(false);
+          handleConnectSpotify();
+        }}
+        onContinueWithoutSpotify={() => {
+          setShowSpotifyGate(false);
+          tasteProfile.openModal();
+        }}
+      />
+
+      {tasteProfile.showTasteProfileModal && (
+        <Modal
+          isOpen={tasteProfile.showTasteProfileModal}
+          onClose={tasteProfile.closeModal}
+          title="Build Your Taste Profile"
+        >
+          <TasteProfileForm
+            onSubmit={tasteProfile.submitTasteProfile}
+            onCancel={tasteProfile.closeModal}
+            isSubmitting={tasteProfile.isSubmitting}
           />
         </Modal>
       )}

@@ -6,6 +6,63 @@ export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
+const demoScreens = [
+  {
+    file: 'Login_screen.png',
+    alt: 'SoundMate login screen with email and password fields and a Continue with Spotify option',
+    title: 'Get in fast',
+    description: "Sign up with just an email and password, or connect with Spotify if you're already on the approved list. Either way takes under a minute.",
+  },
+  {
+    file: 'Authorize_spotify.png',
+    alt: 'Spotify authorization screen asking to grant SoundMate access',
+    title: 'Link Spotify in one tap',
+    description: 'Connecting your account is a single authorization screen. We only read your top artists, top tracks, and basic profile info, nothing gets posted on your behalf.',
+  },
+  {
+    file: 'Profile_page.png',
+    alt: 'Profile page showing top artists, genres, and events the user is attending',
+    title: 'A profile built from what you actually listen to',
+    description: 'Your top artists and genres show up automatically, pulled straight from your real listening history, alongside every event you\'re attending.',
+  },
+  {
+    file: 'Discover people with music taste like you.png',
+    alt: 'Discover Friends page showing suggested matches with compatibility scores',
+    title: 'Find your people',
+    description: 'Search for classmates by name or username, or scroll through suggested matches. Every match comes with a compatibility score based on your shared taste.',
+  },
+  {
+    file: 'view a friend profile.png',
+    alt: "A friend's profile showing their top artists and an unfriend option",
+    title: 'See what makes someone a match',
+    description: "Tap into anyone's profile to see their top artists and bio before you connect, so a match is never a mystery.",
+  },
+  {
+    file: 'Event Page.png',
+    alt: 'Events page listing upcoming campus music events',
+    title: "See what's happening",
+    description: "Every event on campus in one feed. Filter to what you're going to, what you're still deciding on, or browse everything.",
+  },
+  {
+    file: 'RSVP to an evemt.png',
+    alt: 'Event detail view with RSVP options for going, maybe, or can\'t go',
+    title: 'RSVP in one click',
+    description: 'Tap into any event to see the details and who else is going, then mark yourself as going, maybe, or can\'t go.',
+  },
+  {
+    file: 'Create an event.png',
+    alt: 'Create Event form with fields for title, location, date, and music tag',
+    title: 'Host your own',
+    description: 'Set a title, location, date, and music tag, then decide whether it\'s open to everyone or invite only.',
+  },
+  {
+    file: 'Edit profile.png',
+    alt: 'Edit Profile modal with display name, bio, and social links',
+    title: 'Make it yours',
+    description: 'Update your bio, add links to your other socials, and choose whether your Spotify profile shows up publicly.',
+  },
+] as const;
+
 function HomePage() {
   const images = [
     '/bg-images/pexels-chris-clark-1933184-5804422.jpg',
@@ -74,10 +131,10 @@ function HomePage() {
                     <span className="text-2xl font-bold text-black">1</span>
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-3">
-                    <TypewriterText text="Connect Spotify" delay={2800} />
+                    <TypewriterText text="Build Your Taste Profile" delay={2800} />
                   </h3>
                   <p className="text-gray-400">
-                    <TypewriterText text="Link your Spotify account to import your top artists and music preferences" delay={3000} />
+                    <TypewriterText text="SoundMate matches you on what you actually listen to, not a bio. Connect Spotify to import your top artists and genres automatically, or add your favorites by hand" delay={3000} />
                   </p>
                 </div>
               </AuroraRay>
@@ -93,7 +150,7 @@ function HomePage() {
                     <TypewriterText text="Discover Matches" delay={3200} />
                   </h3>
                   <p className="text-gray-400">
-                    <TypewriterText text="Our algorithm finds students at your college with similar music taste" delay={3400} />
+                    <TypewriterText text="We compare your top artists and genres against real students at your school and surface a compatibility score, so you find people who already like what you like" delay={3400} />
                   </p>
                 </div>
               </AuroraRay>
@@ -106,10 +163,10 @@ function HomePage() {
                     <span className="text-2xl font-bold text-black">3</span>
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-3">
-                    <TypewriterText text="Create Events" delay={3600} />
+                    <TypewriterText text="Meet Up IRL" delay={3600} />
                   </h3>
                   <p className="text-gray-400">
-                    <TypewriterText text="Plan concerts, jam sessions, and music events with your new friends" delay={3800} />
+                    <TypewriterText text="Turn a match into a hangout. Create or RSVP to concerts, jam sessions, and meetups with people who share your taste" delay={3800} />
                   </p>
                 </div>
               </AuroraRay>
@@ -119,27 +176,49 @@ function HomePage() {
       </section>
 
       <section className="py-20 px-6 bg-black">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-6xl mx-auto">
           <FadeIn>
-            <h2 className="text-4xl font-bold text-white mb-4">
-              <TypewriterText text="Stay in the loop, support the girlies" delay={4200} />
+            <h2 className="text-4xl font-bold text-center text-white mb-4">
+              See It In Action
             </h2>
           </FadeIn>
 
           <FadeIn delay={1}>
-            <p className="text-xl text-gray-400 mb-8">
-              <TypewriterText text="We are a group of 3 developers! Connect with us and give us some feedbacks!" delay={4600} />
+            <p className="text-center text-gray-400 mb-20 max-w-2xl mx-auto">
+              Don't want to make an account yet? Here's exactly what's inside.
             </p>
           </FadeIn>
 
-          <FadeIn delay={2}>
-            <a
-              href="mailto:dustintr@udel.edu,vniko@udel.edu,gscoz@udel.edu?subject=Newsletter Signup&body=Just wanted to say hi!"
-              className="px-8 py-4 text-lg font-semibold bg-white text-black rounded-full transition-all transform hover:scale-105 shadow-lg cursor-pointer inline-block"
-            >
-              <TypewriterText text="Say hi to us!" delay={5200} />
-            </a>
-          </FadeIn>
+          <div className="flex flex-col gap-24">
+            {demoScreens.map((screen, i) => (
+              <FadeIn key={screen.file} delay={(i % 4) as 0 | 1 | 2 | 3}>
+                <div
+                  className={`flex flex-col ${
+                    i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'
+                  } items-center gap-10 md:gap-14`}
+                >
+                  <div className="w-full md:w-3/5">
+                    <div className="rounded-2xl border border-white/15 overflow-hidden shadow-2xl bg-white/5">
+                      <img
+                        src={`/demo/${encodeURIComponent(screen.file)}`}
+                        alt={screen.alt}
+                        loading="lazy"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </div>
+                  <div className="w-full md:w-2/5">
+                    <h3 className="text-2xl font-semibold text-white mb-3">
+                      {screen.title}
+                    </h3>
+                    <p className="text-gray-400 leading-relaxed">
+                      {screen.description}
+                    </p>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
         </div>
       </section>
     </div>
