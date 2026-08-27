@@ -72,8 +72,23 @@ export const UserUpdateIn = z.object({
 export type UserUpdateIn = z.infer<typeof UserUpdateIn>;
 
 export const UsersListFilter = Pagination.extend({
-  search: z.string().optional(), 
+  search: z.string().optional(),
   hasTopArtists: z.boolean().optional(),
 });
 
 export type UsersListFilter = z.infer<typeof UsersListFilter>;
+
+// Manually-built taste profile for users who haven't (or can't yet) connect
+// Spotify. Powers the same matching algorithm as synced Spotify data.
+export const TasteProfileIn = z.object({
+  artists: z
+    .array(z.string().trim().min(1).max(100))
+    .min(3, { message: 'Add at least 3 artists' })
+    .max(15, { message: 'You can add up to 15 artists' }),
+  genres: z
+    .array(z.string().trim().min(1).max(40))
+    .min(1, { message: 'Add at least 1 genre' })
+    .max(10, { message: 'You can add up to 10 genres' }),
+});
+
+export type TasteProfileIn = z.infer<typeof TasteProfileIn>;

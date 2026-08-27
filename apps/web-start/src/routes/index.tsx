@@ -74,10 +74,10 @@ function HomePage() {
                     <span className="text-2xl font-bold text-black">1</span>
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-3">
-                    <TypewriterText text="Connect Spotify" delay={2800} />
+                    <TypewriterText text="Build Your Taste Profile" delay={2800} />
                   </h3>
                   <p className="text-gray-400">
-                    <TypewriterText text="Link your Spotify account to import your top artists and music preferences" delay={3000} />
+                    <TypewriterText text="SoundMate matches you on what you actually listen to, not a bio. Connect Spotify to import your top artists and genres automatically, or add your favorites by hand" delay={3000} />
                   </p>
                 </div>
               </AuroraRay>
@@ -93,7 +93,7 @@ function HomePage() {
                     <TypewriterText text="Discover Matches" delay={3200} />
                   </h3>
                   <p className="text-gray-400">
-                    <TypewriterText text="Our algorithm finds students at your college with similar music taste" delay={3400} />
+                    <TypewriterText text="We compare your top artists and genres against real students at your school and surface a compatibility score, so you find people who already like what you like" delay={3400} />
                   </p>
                 </div>
               </AuroraRay>
@@ -106,40 +106,15 @@ function HomePage() {
                     <span className="text-2xl font-bold text-black">3</span>
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-3">
-                    <TypewriterText text="Create Events" delay={3600} />
+                    <TypewriterText text="Meet Up IRL" delay={3600} />
                   </h3>
                   <p className="text-gray-400">
-                    <TypewriterText text="Plan concerts, jam sessions, and music events with your new friends" delay={3800} />
+                    <TypewriterText text="Turn a match into a hangout. Create or RSVP to concerts, jam sessions, and meetups with people who share your taste" delay={3800} />
                   </p>
                 </div>
               </AuroraRay>
             </FadeIn>
           </div>
-        </div>
-      </section>
-
-      <section className="py-20 px-6 bg-black">
-        <div className="max-w-4xl mx-auto text-center">
-          <FadeIn>
-            <h2 className="text-4xl font-bold text-white mb-4">
-              <TypewriterText text="Stay in the loop, support the girlies" delay={4200} />
-            </h2>
-          </FadeIn>
-
-          <FadeIn delay={1}>
-            <p className="text-xl text-gray-400 mb-8">
-              <TypewriterText text="We are a group of 3 developers! Connect with us and give us some feedbacks!" delay={4600} />
-            </p>
-          </FadeIn>
-
-          <FadeIn delay={2}>
-            <a
-              href="mailto:dustintr@udel.edu,vniko@udel.edu,gscoz@udel.edu?subject=Newsletter Signup&body=Just wanted to say hi!"
-              className="px-8 py-4 text-lg font-semibold bg-white text-black rounded-full transition-all transform hover:scale-105 shadow-lg cursor-pointer inline-block"
-            >
-              <TypewriterText text="Say hi to us!" delay={5200} />
-            </a>
-          </FadeIn>
         </div>
       </section>
     </div>

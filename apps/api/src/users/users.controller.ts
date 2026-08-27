@@ -1,11 +1,11 @@
-import { 
-  Controller, Delete, Get, Patch, Param, Body, Query, UseGuards 
+import {
+  Controller, Delete, Get, Patch, Post, Param, Body, Query, UseGuards
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtUser } from '../auth/jwt.strategy';
-import { UserUpdateIn } from '@repo/api';
+import { UserUpdateIn, TasteProfileIn } from '@repo/api';
 import { ZodValidationPipe } from '../pipes/zod-validation.pipe';
 
 @Controller('users')
@@ -51,6 +51,21 @@ export class UsersController {
   ) {
     const user = await this.usersService.findByAuth0Id(jwtUser.sub);
     return this.usersService.updateCurrentUser(user.id, body);
+  }
+
+  @Post('me/taste-profile')
+  @UseGuards(JwtAuthGuard)
+  async setTasteProfile(
+    @CurrentUser() jwtUser: JwtUser,
+    @Body(new ZodValidationPipe(TasteProfileIn)) body: TasteProfileIn,
+  ) {
+    let user = await this.usersService.findByAuth0Id(jwtUser.sub);
+
+    if (!user) {
+      user = await this.usersService.createUserFromAuth0(jwtUser.sub);
+    }
+
+    return this.usersService.setManualTasteProfile(user.id, body);
   }
 
   @Delete('me')

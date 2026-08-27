@@ -295,7 +295,7 @@ export class MatchingService {
     const { limit = 20, minScore = 50, excludeConnections = true } = options;
 
     // Check if current user has Spotify stats
-    const currentUserStats = await this.prisma.spotifyStats.findUnique({
+    const currentUserStats = await this.prisma.userSpotifyStats.findUnique({
       where: { userId },
     });
 

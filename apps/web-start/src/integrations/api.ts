@@ -155,6 +155,12 @@ export type CurrentUser = {
   spotifyStats?: {
     lastSyncedAt: string | null;
   } | null;
+  /** Existence counts for gating features that need a taste profile — works
+   * whether the profile came from Spotify sync or was built manually. */
+  _count?: {
+    topArtists: number;
+    topGenres: number;
+  };
 };
 
 export function useCurrentUser(opts?: { scope?: string }) {

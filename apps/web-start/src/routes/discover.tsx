@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Lock } from 'lucide-react';
 import { useOnboardingRedirect } from '../hooks/useOnboardingRedirect';
 import { TypewriterText } from '../components/Animations';
 import DiscoveryList from '../components/DiscoveryList/DiscoveryList';
 import DiscoveryModal from '../components/DiscoveryList/DiscoveryModal';
 import SearchBar from '../components/SearchBar/SearchBar';
 import { ConnectionSection } from '../components/ConnectionSection/ConnectionSection';
+import { EmptyState } from '../components/EmptyState/EmptyState';
 import { useApiClient, useCurrentUser } from '../integrations/api';
 import { useFriendSuggestions } from '../hooks/useFriendSuggestions';
 import { useConnections } from '../hooks/useConnections';
@@ -22,6 +24,8 @@ export function FriendsDiscoveryPage() {
   const { isCheckingOnboarding, needsOnboarding } = useOnboardingRedirect();
   const { request } = useApiClient();
   const { data: currentUser } = useCurrentUser();
+
+  const hasTasteProfile = ((currentUser?._count?.topArtists ?? 0) > 0) || ((currentUser?._count?.topGenres ?? 0) > 0);
 
   // Discovery Filters
   const [filter, setFilter] = useState<'suggestions' | 'pending' | 'sent' | 'friends'>('suggestions');
@@ -522,58 +526,76 @@ export function FriendsDiscoveryPage() {
           optimisticStatusUpdates={optimisticStatusUpdates}
         />
 
-        {!suggestionsLoading && suggestions.length > 0 && (
+        {!hasTasteProfile ? (
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Suggested Friends</h2>
-                <p className="text-sm text-gray-400 mt-1">
-                  {suggestions.some(s => s.compatibilityScore >= 50)
-                    ? 'Based on music compatibility'
-                    : 'Showing all available users (no high compatibility matches found)'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-purple-400 font-medium">
-                  {suggestions.length} {suggestions.length === 1 ? 'match' : 'matches'} found
-                </span>
-              </div>
-            </div>
-
-            <DiscoveryList
-              users={suggestions.map(s => {
-                const user = s.user as any;
-
-                // Check for optimistic update first
-                const optimisticUpdate = optimisticStatusUpdates.get(user.id);
-                const finalConnectionStatus = optimisticUpdate
-                  ? optimisticUpdate.connectionStatus
-                  : (user.connectionStatus === 'PENDING'
-                    ? (user.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT')
-                    : (user.connectionStatus || 'NONE'));
-
-                return {
-                  id: user.id,
-                  profilePicture: user.profilePhotoUrl,
-                  displayName: user.displayName,
-                  username: user.username,
-                  bio: user.bio,
-                  compatibilityScore: s.compatibilityScore,
-                  connectionStatus: finalConnectionStatus,
-                  isPendingFromThem: user.isPendingFromThem || false,
-                  connectionId: optimisticUpdate?.connectionId ?? user.connectionId ?? null,
-                  sharedArtists: s.sharedArtists.map(a => ({ id: a.id, name: a.name, imageUrl: a.imageUrl })),
-                };
-              })}
-              onUserClick={(userItem) => {
-                handleClickSuggestion(userItem.id);
-              }}
-              onConnect={async (userId) => { await handleConnect(userId); }}
-              onAcceptConnection={(connectionId) => handleAcceptConnection(connectionId)}
-              onCancelConnection={(connectionId) => handleCancelConnection(connectionId)}
+            <EmptyState
+              icon={<Lock size={40} />}
+              title="Matching is locked"
+              description="Add a taste profile to unlock music-based friend suggestions — connect Spotify or build one manually from your profile page in under a minute."
             />
+            <div className="text-center mt-4">
+              <Link
+                to="/profile"
+                className="inline-block px-6 py-2 bg-white text-black rounded-full font-medium hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Go to Profile
+              </Link>
+            </div>
           </div>
-        )}
+        ) : (
+          <>
+            {!suggestionsLoading && suggestions.length > 0 && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Suggested Friends</h2>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {suggestions.some(s => s.compatibilityScore >= 50)
+                        ? 'Based on music compatibility'
+                        : 'Showing all available users (no high compatibility matches found)'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-purple-400 font-medium">
+                      {suggestions.length} {suggestions.length === 1 ? 'match' : 'matches'} found
+                    </span>
+                  </div>
+                </div>
+
+                <DiscoveryList
+                  users={suggestions.map(s => {
+                    const user = s.user as any;
+
+                    // Check for optimistic update first
+                    const optimisticUpdate = optimisticStatusUpdates.get(user.id);
+                    const finalConnectionStatus = optimisticUpdate
+                      ? optimisticUpdate.connectionStatus
+                      : (user.connectionStatus === 'PENDING'
+                        ? (user.isPendingFromThem ? 'PENDING_RECEIVED' : 'PENDING_SENT')
+                        : (user.connectionStatus || 'NONE'));
+
+                    return {
+                      id: user.id,
+                      profilePicture: user.profilePhotoUrl,
+                      displayName: user.displayName,
+                      username: user.username,
+                      bio: user.bio,
+                      compatibilityScore: s.compatibilityScore,
+                      connectionStatus: finalConnectionStatus,
+                      isPendingFromThem: user.isPendingFromThem || false,
+                      connectionId: optimisticUpdate?.connectionId ?? user.connectionId ?? null,
+                      sharedArtists: s.sharedArtists.map(a => ({ id: a.id, name: a.name, imageUrl: a.imageUrl })),
+                    };
+                  })}
+                  onUserClick={(userItem) => {
+                    handleClickSuggestion(userItem.id);
+                  }}
+                  onConnect={async (userId) => { await handleConnect(userId); }}
+                  onAcceptConnection={(connectionId) => handleAcceptConnection(connectionId)}
+                  onCancelConnection={(connectionId) => handleCancelConnection(connectionId)}
+                />
+              </div>
+            )}
 
             {/* Suggestions Loading State */}
             {suggestionsLoading && (
@@ -612,7 +634,9 @@ export function FriendsDiscoveryPage() {
                 </div>
               </div>
             )}
-            
+          </>
+        )}
+
             {/* Recent Searches */}
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
