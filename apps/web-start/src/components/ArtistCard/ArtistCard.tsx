@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 type TopArtist = {
   id: string;
   spotifyArtistId: string;
@@ -14,6 +16,14 @@ interface ArtistCardProps {
 }
 
 export function ArtistCard({ artist }: ArtistCardProps) {
+  // Synced artist images (and the seeded demo ones) can 404 — fall back to
+  // the placeholder instead of showing a broken image.
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [artist.imageUrl]);
+
   // Convert spotify URI to web URL
   const getSpotifyUrl = () => {
     if (artist.spotifyUri) {
@@ -29,9 +39,10 @@ export function ArtistCard({ artist }: ArtistCardProps) {
   const content = (
     <>
       <img
-        src={artist.imageUrl || '/placeholder-artist.jpg'}
+        src={imageFailed || !artist.imageUrl ? '/placeholder-artist.jpg' : artist.imageUrl}
         alt={artist.name}
         className="w-24 h-24 rounded-full mx-auto mb-2 object-cover bg-gray-800 transition-transform"
+        onError={() => setImageFailed(true)}
       />
       <p className="font-medium text-white">{artist.name}</p>
       <p className="text-xs text-gray-400">
