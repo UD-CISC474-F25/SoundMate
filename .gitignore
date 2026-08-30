@@ -42,9 +42,10 @@ yarn-error.log*
 .DS_Store
 *.pem
 
-# Markdown files (except README.md)
+# Markdown files (except README.md and the architecture diagram)
 *.md
 !README.md
+!ARCHITECTURE_DIAGRAM.md
 
 # Debug
 logs
