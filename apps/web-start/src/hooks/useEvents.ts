@@ -1,6 +1,22 @@
 import { useState } from 'react';
 import { useApiQuery, useApiMutation, useCurrentUser } from '../integrations/api';
 
+// <input type="datetime-local"> requires its value in "YYYY-MM-DDTHH:mm"
+// *local* time, not the "YYYY-MM-DDTHH:mm:ss.sssZ" UTC string the API
+// returns. Feeding the raw ISO string straight into the input silently
+// fails to parse, the browser just renders the field blank, which made
+// editing an event look like its date had been lost even though the data
+// was fine. Convert on the way in; the existing `new Date(value).toISOString()`
+// on submit already converts back correctly, since `new Date('YYYY-MM-DDTHH:mm')`
+// parses as local time.
+function toDatetimeLocalValue(isoString: string | null): string {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -126,7 +142,7 @@ export function useEvents() {
     setCreateForm({
       title: event.title,
       description: event.description || '',
-      dateTime: event.dateTime || '',
+      dateTime: toDatetimeLocalValue(event.dateTime),
       location: event.location || '',
       musicTag: event.musicTag || '',
       artistId: event.artist?.name || '',

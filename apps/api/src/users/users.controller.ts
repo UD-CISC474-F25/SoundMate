@@ -1,5 +1,5 @@
 import {
-  Controller, Delete, Get, Patch, Post, Param, Body, Query, UseGuards
+  Controller, Delete, Get, Patch, Post, Param, Body, Query, UseGuards, NotFoundException
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,12 +15,7 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() jwtUser: JwtUser) {
-    let user = await this.usersService.findByAuth0Id(jwtUser.sub);
-
-    if (!user) {
-      user = await this.usersService.createUserFromAuth0(jwtUser.sub);
-    }
-
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.usersService.getCurrentUser(user.id);
   }
 
@@ -30,12 +25,7 @@ export class UsersController {
     @CurrentUser() jwtUser: JwtUser,
     @Query('timeRange') timeRange: string = 'SHORT_TERM',
   ) {
-    let user = await this.usersService.findByAuth0Id(jwtUser.sub);
-
-    if (!user) {
-      user = await this.usersService.createUserFromAuth0(jwtUser.sub);
-    }
-
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.usersService.findOneWithTopStats(user.id, timeRange);
   }
 
@@ -49,7 +39,7 @@ export class UsersController {
       showSpotifyProfile?: boolean;
     }
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.usersService.updateCurrentUser(user.id, body);
   }
 
@@ -59,12 +49,7 @@ export class UsersController {
     @CurrentUser() jwtUser: JwtUser,
     @Body(new ZodValidationPipe(TasteProfileIn)) body: TasteProfileIn,
   ) {
-    let user = await this.usersService.findByAuth0Id(jwtUser.sub);
-
-    if (!user) {
-      user = await this.usersService.createUserFromAuth0(jwtUser.sub);
-    }
-
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.usersService.setManualTasteProfile(user.id, body);
   }
 
@@ -72,7 +57,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async deleteMe(@CurrentUser() jwtUser: JwtUser) {
     const user = await this.usersService.findByAuth0Id(jwtUser.sub);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new NotFoundException('User not found');
 
     return this.usersService.deleteUser(user.id);
   }
@@ -83,21 +68,29 @@ export class UsersController {
     @CurrentUser() jwtUser: JwtUser,
     @Query('search') search?: string,
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.usersService.findUsersForDiscovery(user.id, search);
   }
 
+  // The routes below were previously missing @UseGuards(JwtAuthGuard),
+  // meaning anyone with no token at all could list every user or pull up
+  // any user's full profile (top artists/songs included). Every other
+  // route in this controller requires auth; these three didn't for no
+  // deliberate reason, so they're guarded to match.
   @Get()
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.usersService.findAll();
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Get(':id/profile')
+  @UseGuards(JwtAuthGuard)
   findProfile(
     @Param('id') id: string,
     @Query('timeRange') timeRange: string = 'SHORT_TERM',

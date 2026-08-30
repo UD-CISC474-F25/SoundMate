@@ -24,7 +24,20 @@ export function useProfileEdit(user: UserProfile | undefined, timeRange: string)
   const updateProfileMutation = useApiMutation({
     path: '/users/me',
     method: 'PATCH',
-    invalidateKeys: [['users', 'me', 'profile', timeRange]],
+    // React Query's invalidateQueries matches by key *prefix*, not exact
+    // key, so ['users','me','profile'] (no timeRange) invalidates all
+    // three timeRange variants at once. That still isn't enough on its
+    // own though: the Navbar caches the same profile data under a
+    // completely different key, ['users','me','profile-basic'], which
+    // doesn't share that prefix and was never being told to refetch. That
+    // mismatch is why editing your display name or photo used to update
+    // the profile page but leave the Navbar showing the old one for up to
+    // 5 minutes (its staleTime). Invalidate both.
+    invalidateKeys: [
+      ['users', 'me', 'profile'],
+      ['users', 'me', 'profile-basic'],
+      ['users', 'me'],
+    ],
   });
 
   const openEditModal = () => {

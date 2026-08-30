@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateLinkDto, UpdateLinkDto } from '@repo/api';
 
@@ -43,9 +43,13 @@ export class LinksService {
   }
 
   async update(id: string, userId: string, updateLinkDto: UpdateLinkDto) {
+    // findOne is already scoped to `userId`, so this one check covers both
+    // "doesn't exist" and "exists but belongs to someone else" without
+    // revealing to the caller which case it was, same as every sibling
+    // service (comments, connections, events) does for its own resources.
     const link = await this.findOne(id, userId);
     if (!link) {
-      throw new Error('Link not found or you do not have permission');
+      throw new NotFoundException('Link not found');
     }
 
     return this.prisma.link.update({
@@ -57,7 +61,7 @@ export class LinksService {
   async remove(id: string, userId: string) {
     const link = await this.findOne(id, userId);
     if (!link) {
-      throw new Error('Link not found or you do not have permission');
+      throw new NotFoundException('Link not found');
     }
 
     return this.prisma.link.delete({

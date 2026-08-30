@@ -35,6 +35,20 @@ export class MatchingService {
       this.getUserMusicData(userId2),
     ]);
 
+    return this.scoreFromMusicData(user1Data, user2Data);
+  }
+
+  /**
+   * The actual scoring math, taking already-fetched data instead of user
+   * ids. Split out from `calculateCompatibilityScore` so that ranking one
+   * user against many candidates (`getFriendSuggestions`) can fetch that
+   * one user's own data a single time and reuse it, instead of re-fetching
+   * it from the database once per candidate.
+   */
+  private scoreFromMusicData(
+    user1Data: UserMusicData,
+    user2Data: UserMusicData,
+  ): { score: number; details: MatchDetails } {
     // Calculate individual similarity scores
     const artistSimilarity = this.calculateArtistSimilarity(
       user1Data.topArtists,
@@ -334,13 +348,20 @@ export class MatchingService {
       );
     }
 
+    // Fetch the requesting user's own music data once, up front, rather
+    // than inside the loop below. calculateCompatibilityScore(userId, x)
+    // was being called once per candidate, and every one of those calls
+    // independently re-fetched `userId`'s own top artists/genres/songs
+    // (3 queries), even though that data never changes across the loop.
+    // With up to 100 candidates, that was ~300 redundant queries on top of
+    // the ~300 actually-necessary ones for each candidate.
+    const currentUserData = await this.getUserMusicData(userId);
+
     // Calculate compatibility scores
     const suggestions = await Promise.all(
       potentialUsers.map(async (user) => {
-        const result = await this.calculateCompatibilityScore(
-          userId,
-          user.id,
-        );
+        const candidateData = await this.getUserMusicData(user.id);
+        const result = this.scoreFromMusicData(currentUserData, candidateData);
         return {
           userId: user.id,
           compatibilityScore: result.score,

@@ -31,7 +31,7 @@ export class ConnectionsController {
 
   @Get()
   async getConnections(@CurrentUser() jwtUser: JwtUser) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.connectionsService.getConnectionsForUser(user.id);
   }
 
@@ -41,7 +41,7 @@ export class ConnectionsController {
     @Body(new ZodValidationPipe(ConnectionCreateIn))
     body: { receiverId: string },
   ) {
-    const requester = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const requester = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.connectionsService.addConnection(
       requester.id,
       body.receiverId,
@@ -55,7 +55,7 @@ export class ConnectionsController {
     @Body(new ZodValidationPipe(ConnectionUpdateIn))
     body: { status: 'PENDING' | 'ACCEPTED' },
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.connectionsService.updateConnection(
       connectionId,
       user.id,
@@ -68,7 +68,7 @@ export class ConnectionsController {
     @Param('connectionId') connectionId: string,
     @CurrentUser() jwtUser: JwtUser,
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.connectionsService.deleteConnection(connectionId, user.id);
   }
 }

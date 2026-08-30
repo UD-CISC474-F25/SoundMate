@@ -25,8 +25,12 @@ export class CommentsController {
   ) {}
 
   @Get()
-  async getComments(@Param('eventId') eventId: string) {
-    return this.commentsService.getComments(eventId);
+  async getComments(
+    @Param('eventId') eventId: string,
+    @CurrentUser() jwtUser: JwtUser,
+  ) {
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
+    return this.commentsService.getComments(eventId, user.id);
   }
 
   @Post()
@@ -36,7 +40,7 @@ export class CommentsController {
     @Body(new ZodValidationPipe(EventCommentCreateIn))
     body: { content: string },
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.commentsService.addComment(eventId, user.id, body.content);
   }
 
@@ -47,7 +51,7 @@ export class CommentsController {
     @Body(new ZodValidationPipe(EventCommentUpdateIn))
     body: { content: string },
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.commentsService.updateComment(commentId, user.id, body.content);
   }
 
@@ -56,7 +60,7 @@ export class CommentsController {
     @Param('commentId') commentId: string,
     @CurrentUser() jwtUser: JwtUser,
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.commentsService.deleteComment(commentId, user.id);
   }
 }

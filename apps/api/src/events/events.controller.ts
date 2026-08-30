@@ -26,14 +26,14 @@ export class EventsController {
   @Get()
   @UseGuards(JwtAuthGuard)
   async findAll(@CurrentUser() jwtUser: JwtUser) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.eventsService.findAll(user.id);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async findOne(@Param('id') id: string, @CurrentUser() jwtUser: JwtUser) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.eventsService.findOne(id, user.id);
   }
 
@@ -44,7 +44,7 @@ export class EventsController {
     @Body(new ZodValidationPipe(EventCreateIn))
     body: any,
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.eventsService.create(user.id, body);
   }
 
@@ -56,14 +56,14 @@ export class EventsController {
     @Body(new ZodValidationPipe(EventUpdateIn))
     body: any,
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.eventsService.update(id, user.id, body);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async delete(@Param('id') id: string, @CurrentUser() jwtUser: JwtUser) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.eventsService.delete(id, user.id);
   }
 
@@ -75,7 +75,7 @@ export class EventsController {
     @Body(new ZodValidationPipe(EventRsvpIn))
     body: { status: string },
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.eventsService.rsvp(id, user.id, body.status);
   }
 }
