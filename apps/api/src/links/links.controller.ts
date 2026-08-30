@@ -20,13 +20,13 @@ export class LinksController {
     @CurrentUser() jwtUser: JwtUser,
     @Body(new ZodValidationPipe(CreateLinkDto)) createLinkDto: CreateLinkDto,
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.linksService.create(user.id, createLinkDto);
   }
 
   @Get()
   async findAll(@CurrentUser() jwtUser: JwtUser) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.linksService.findAll(user.id);
   }
 
@@ -36,13 +36,13 @@ export class LinksController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateLinkDto)) updateLinkDto: UpdateLinkDto,
   ) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.linksService.update(id, user.id, updateLinkDto);
   }
 
   @Delete(':id')
   async remove(@CurrentUser() jwtUser: JwtUser, @Param('id') id: string) {
-    const user = await this.usersService.findByAuth0Id(jwtUser.sub);
+    const user = await this.usersService.findOrCreateByAuth0Id(jwtUser.sub);
     return this.linksService.remove(id, user.id);
   }
 }

@@ -169,6 +169,22 @@ export class UsersService {
     });
   }
 
+  /**
+   * Every controller that guards a route with JwtAuthGuard then needs the
+   * User row for the verified auth0Id, and there's no separate "register"
+   * step, a verified JWT for an auth0Id we've never seen just gets a bare
+   * user row created on the spot (see `getMe` in UsersController for the
+   * original version of this pattern). Centralizing it here means every
+   * controller gets a guaranteed non-null User back, instead of each one
+   * separately doing `findByAuth0Id` and either forgetting to null-check it
+   * (a 500 for any brand-new user) or duplicating the same four lines.
+   */
+  async findOrCreateByAuth0Id(auth0Id: string) {
+    const existing = await this.findByAuth0Id(auth0Id);
+    if (existing) return existing;
+    return this.createUserFromAuth0(auth0Id);
+  }
+
   async createUserFromAuth0(auth0Id: string) {
     return this.prisma.user.create({
       data: {

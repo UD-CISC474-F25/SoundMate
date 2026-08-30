@@ -198,12 +198,12 @@ function HomePage() {
                   } items-center gap-10 md:gap-14`}
                 >
                   <div className="w-full md:w-3/5">
-                    <div className="rounded-2xl border border-white/15 overflow-hidden shadow-2xl bg-white/5">
+                    <div className="rounded-2xl border border-white/15 overflow-hidden shadow-2xl bg-white/5 h-[280px] sm:h-[360px] md:h-[420px] flex items-center justify-center p-4">
                       <img
                         src={`/demo/${encodeURIComponent(screen.file)}`}
                         alt={screen.alt}
                         loading="lazy"
-                        className="w-full h-auto"
+                        className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
                       />
                     </div>
                   </div>

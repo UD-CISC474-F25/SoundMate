@@ -1,4 +1,5 @@
-import { Controller, Post, Body, UseGuards, UsePipes, Get, Res, Query } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, UsePipes, Get, Res, Query, BadRequestException } from '@nestjs/common';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
@@ -8,6 +9,12 @@ import { ZodValidationPipe } from '../pipes/zod-validation.pipe';
 import { Response } from 'express';
 import { PrismaService } from '../prisma.service';
 import { SpotifyService } from '../spotify/spotify.service';
+
+// How long a signed `state` value is accepted after being issued. Just a
+// defense-in-depth bound (see the class doc comment below for the main
+// reason this needs to be signed at all) so a captured state value can't
+// be replayed indefinitely.
+const SPOTIFY_STATE_TTL_MS = 10 * 60 * 1000;
 
 @Controller('auth')
 export class AuthController {
@@ -65,7 +72,7 @@ export class AuthController {
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     const redirectUri = `${process.env.BACKEND_URL}/auth/spotify/callback`;
     const scope = 'user-read-email user-top-read user-read-private';
-    const state = Buffer.from(JSON.stringify({ auth0Id: jwtUser.sub })).toString('base64');
+    const state = this.signState(jwtUser.sub);
 
     const authUrl = `https://accounts.spotify.com/authorize?` +
       `client_id=${clientId}&` +
@@ -83,7 +90,7 @@ export class AuthController {
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     const redirectUri = `${process.env.BACKEND_URL}/auth/spotify/callback`;
     const scope = 'user-read-email user-top-read user-read-private';
-    const state = Buffer.from(JSON.stringify({ auth0Id: jwtUser.sub })).toString('base64');
+    const state = this.signState(jwtUser.sub);
 
     const authUrl = `https://accounts.spotify.com/authorize?` +
       `client_id=${clientId}&` +
@@ -102,7 +109,7 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
-      const { auth0Id } = JSON.parse(Buffer.from(state, 'base64').toString());
+      const { auth0Id } = this.verifyState(state);
 
       const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
@@ -194,5 +201,74 @@ export class AuthController {
     }
 
     return response.json();
+  }
+
+  /**
+   * The OAuth `state` param round-trips through Spotify's servers and back
+   * to us unmodified, so it's the only place we get to stash "which of our
+   * users started this flow." It used to just be
+   * `base64(JSON.stringify({ auth0Id }))`, base64 is an *encoding*, not a
+   * *secret*, anyone can decode or construct one. That meant anyone who
+   * knew (or guessed) a victim's auth0Id could start their own Spotify
+   * OAuth flow to get a valid `code`, then call our public, unauthenticated
+   * `/auth/spotify/callback` directly with `state` set to the victim's
+   * auth0Id, causing us to overwrite the victim's spotifyId, photo, and
+   * Spotify tokens with the attacker's.
+   *
+   * Signing the payload with an HMAC (keyed on a secret only this server
+   * has) fixes that: the payload can still be *read* by anyone (it's not
+   * encrypted, it doesn't need to be, an auth0Id isn't itself sensitive),
+   * but it can't be *forged*, only whoever holds the secret can produce a
+   * signature that `verifyState` will accept. The `iat` timestamp bounds
+   * how long a captured, valid state value could be replayed for.
+   */
+  private signState(auth0Id: string): string {
+    const payload = Buffer.from(
+      JSON.stringify({ auth0Id, iat: Date.now() }),
+    ).toString('base64url');
+    const signature = createHmac('sha256', this.getStateSecret())
+      .update(payload)
+      .digest('base64url');
+    return `${payload}.${signature}`;
+  }
+
+  private verifyState(state: string): { auth0Id: string } {
+    const [payload, signature] = (state ?? '').split('.');
+    if (!payload || !signature) {
+      throw new BadRequestException('Invalid state parameter');
+    }
+
+    const expectedSignature = createHmac('sha256', this.getStateSecret())
+      .update(payload)
+      .digest('base64url');
+
+    // Constant-time comparison, a plain `===` would let an attacker use
+    // response-timing differences to guess the correct signature one byte
+    // at a time.
+    const provided = Buffer.from(signature);
+    const expected = Buffer.from(expectedSignature);
+    if (
+      provided.length !== expected.length ||
+      !timingSafeEqual(provided, expected)
+    ) {
+      throw new BadRequestException('State signature verification failed');
+    }
+
+    const { auth0Id, iat } = JSON.parse(
+      Buffer.from(payload, 'base64url').toString(),
+    );
+    if (typeof iat !== 'number' || Date.now() - iat > SPOTIFY_STATE_TTL_MS) {
+      throw new BadRequestException('State parameter expired');
+    }
+
+    return { auth0Id };
+  }
+
+  private getStateSecret(): string {
+    const secret = process.env.SPOTIFY_CLIENT_SECRET;
+    if (!secret) {
+      throw new Error('SPOTIFY_CLIENT_SECRET is not configured');
+    }
+    return secret;
   }
 }
