@@ -1,16 +1,6 @@
-# SoundMate — Visual Architecture Map
+# SoundMate Visual Architecture Map
 
-Companion to [`ARCHITECTURE.md`](./ARCHITECTURE.md). That file explains things
-in prose; this one is the same system as diagrams. Read them side by side —
-each section here links back to the prose section that narrates it in depth.
-
-GitHub renders all of these Mermaid blocks natively, just view this file on
-github.com (or any Mermaid-aware Markdown viewer) rather than as raw text.
-
-## 1. The whole system, one diagram
-
-The monorepo, the two deployables, the external services they talk to, and
-which shared packages feed which app.
+## 1. High level system overview
 
 ```mermaid
 flowchart TB
@@ -49,14 +39,7 @@ flowchart TB
     style external fill:#fff5f0,stroke:#f97316
 ```
 
-**Why this shape:** identity (Auth0), taste data (Spotify → Postgres), and the
-similarity logic that consumes it are kept as separate concerns on purpose —
-see "What the app actually does" in `ARCHITECTURE.md`.
-
-## 2. A single request, end to end
-
-"A logged-in user opens the Discover page" — the seven-step lifecycle from
-`ARCHITECTURE.md`, as a sequence diagram instead of a numbered list.
+## 2. End to end request life cycle
 
 ```mermaid
 sequenceDiagram
@@ -88,13 +71,7 @@ sequenceDiagram
     R-->>U: renders ranked list
 ```
 
-## 3. Two Spotify flows, side by side
-
-The single most important architectural decision in this codebase: **login**
-and **linking your Spotify data** are two unrelated flows. Conflating them is
-the mistake that made Spotify's dev-mode tester cap block *all* logins, not
-just Spotify-data-sync — see "Two Spotify integrations" in
-`apps/api/ARCHITECTURE.md`.
+## 3. Spotify Integration
 
 ```mermaid
 flowchart LR
@@ -129,14 +106,7 @@ flowchart LR
     style Callback fill:#fee,stroke:#c33
 ```
 
-**The security detail worth calling out on that "public route":** since
-`/auth/spotify/callback` has to be reachable by Spotify's redirect (no bearer
-token possible on a browser redirect), the only thing telling the backend
-*which user* this callback is for is the `state` parameter. That value is now
-HMAC-signed and TTL-bounded specifically because it used to be forgeable —
-full writeup in `apps/api/ARCHITECTURE.md`'s security-review section.
-
-## 4. Database schema (Prisma models → Postgres)
+## 4. Database schema (Prisma models Postgres)
 
 Every relation below is a real foreign key in `packages/database/prisma/schema.prisma`.
 
@@ -231,19 +201,10 @@ erDiagram
         decimal compatibilityScore "nullable"
     }
 ```
-
-**The one deliberate omission:** notice `UserTopArtist`/`UserTopSong`/`UserTopGenre`
-have no "source" column (Spotify vs. manual). That's not an oversight, it's
-the whole reason the manual-taste-profile feature could be built without
-touching the matching algorithm. See "Taste data is source-agnostic by
-design" in `ARCHITECTURE.md`.
-
 ## 5. Backend module map
 
 Every feature folder in `apps/api/src` follows the same
-Module → Controller → Service shape (see `apps/api/ARCHITECTURE.md`,
-"Anatomy of a feature"). This shows how the feature modules depend on each
-other and on the two cross-cutting pieces every one of them uses.
+Module -> Controller -> Service shape
 
 ```mermaid
 flowchart TD
@@ -288,9 +249,6 @@ flowchart TD
 
 ## 6. Matching algorithm data flow
 
-The math behind `MatchingService.calculateCompatibilityScore`, visualized —
-prose walkthrough in `apps/api/ARCHITECTURE.md`, "The matching algorithm."
-
 ```mermaid
 flowchart LR
     subgraph inputs["Per-user taste data (source-agnostic)"]
@@ -316,10 +274,6 @@ flowchart LR
 ```
 
 ## 7. Frontend: routes, hooks, and where auth is enforced
-
-`apps/web-start`'s file-based routes, the guard hook every protected page
-shares, and the fetch layer every hook is built on — see
-`apps/web-start/ARCHITECTURE.md` for the full narrative.
 
 ```mermaid
 flowchart TD
@@ -369,9 +323,122 @@ flowchart TD
     style fetch fill:#fff7ed,stroke:#ea580c
 ```
 
----
+## 8. The scaling plan — what changes, and what doesn't
 
-**How to use this file when relearning the project:** start at diagram 1 for
-the 30,000-foot view, then 2 for how a request actually flows, then 3–4 for
-the two hardest design decisions (dual Spotify flows, source-agnostic taste
-data), then 5–7 if you need to point at *which file* implements a given box.
+Diagrams 1–7 show the system as it exists today. This one shows the same
+system **after** the fixes from the system-design review, colored so it's
+obvious at a glance what's untouched, what's an existing piece with new
+responsibilities, and what's genuinely new infrastructure. 
+
+```mermaid
+flowchart TB
+    classDef existing fill:#eef2ff,stroke:#6366f1,color:#1e1b4b
+    classDef modified fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef new fill:#dcfce7,stroke:#16a34a,color:#14532d
+
+    subgraph legend[" "]
+        direction LR
+        L1["Unchanged"]:::existing
+        L2["Existing piece,\nnew responsibility"]:::modified
+        L3["New infrastructure"]:::new
+    end
+
+    UI["apps/web-start"]:::existing
+
+    subgraph edge["Edge"]
+        Gateway["API Gateway / reverse proxy\n+ rate limiting"]:::new
+    end
+
+    subgraph appTier["App tier — horizontally scaled\n(possible today only because auth is stateless)"]
+        API1["apps/api\ninstance 1"]:::modified
+        API2["apps/api\ninstance 2..N"]:::modified
+    end
+
+    subgraph cacheQueue["Cache + queue"]
+        Redis[("Redis")]:::new
+        Queue["Job queue\n(BullMQ, backed by Redis)"]:::new
+    end
+
+    subgraph workers["Background workers — new process, same code reused"]
+        SyncWorker["Spotify sync worker\n(the 9 sequential API calls,\nmoved out of the request path)"]:::new
+        ScoreWorker["Score precomputation worker\n(recomputes matching scores\nwhen taste data changes)"]:::new
+    end
+
+    subgraph dataTier["Data tier"]
+        Primary[("Postgres\nprimary — writes")]:::existing
+        Replica[("Postgres\nread replica(s)")]:::new
+    end
+
+    subgraph media["Media"]
+        ObjStore[("Object storage\n(S3 / R2)")]:::new
+        CDN["CDN"]:::new
+    end
+
+    subgraph externalSvc["External services — unchanged"]
+        Auth0["Auth0"]:::existing
+        Spotify["Spotify Web API"]:::existing
+    end
+
+    UI --> Gateway
+    Gateway --> API1
+    Gateway --> API2
+    API1 -. verify JWT .-> Auth0
+    API2 -. verify JWT .-> Auth0
+
+    API1 -->|"hot reads: cached\nmatch scores, sessions"| Redis
+    API2 --> Redis
+    API1 -->|"writes"| Primary
+    API2 --> Primary
+    API1 -->|"reads: profile lists,\nevent feeds, cursor-paginated"| Replica
+    API2 --> Replica
+    Primary -. "replication" .-> Replica
+
+    API1 -->|"enqueue: 'sync this user',\nreturns immediately instead of\nblocking on 9 Spotify calls"| Queue
+    API1 -->|"enqueue: 'recompute scores\nfor this user'"| Queue
+    Queue --> SyncWorker
+    Queue --> ScoreWorker
+
+    SyncWorker --> Spotify
+    SyncWorker --> Primary
+    SyncWorker -->|"downloads photo once,\nno longer hotlinked"| ObjStore
+    ScoreWorker --> Primary
+    ScoreWorker -->|"writes precomputed scores"| Redis
+
+    ObjStore --> CDN
+    CDN --> UI
+
+    style edge fill:#f8fafc,stroke:#94a3b8
+    style cacheQueue fill:#f0fdf4,stroke:#86efac
+    style workers fill:#f0fdf4,stroke:#86efac
+    style media fill:#f0fdf4,stroke:#86efac
+    style externalSvc fill:#f8fafc,stroke:#94a3b8
+```
+
+- **Blue (unchanged)** — `apps/web-start`, Auth0, Spotify's API, and the
+  Postgres primary all keep doing exactly what they do today. 
+- **Amber (existing, new responsibility)** — `apps/api` doesn't change what
+  it *is*, but two things change about how it's run: (1) it's deployed as
+  multiple stateless replicas behind a gateway instead of one instance,
+  which — worth repeating — is only a small ops change *because* auth was
+  already stateless (see diagram-1 discussion); (2) the Spotify-callback and
+  taste-profile endpoints stop doing slow work inline and instead just drop
+  a message on the queue and return, which is a small code change (a queue
+  client call replacing a direct function call), not a rewrite.
+- **Green (new)** — everything actually new: the gateway (rate limiting),
+  Redis (cache + queue backing store), the two background workers, the read
+  replica, and object storage + CDN for images. This is genuinely additive
+  infrastructure — it sits *around* the existing system rather than
+  replacing pieces of it, which is why the diagram from section 1 doesn't
+  need to be thrown out, just extended.
+
+**What each new piece solves, mapped back to the specific problem:**
+
+| New piece | Solves |
+|---|---|
+| API Gateway + rate limiting | Nothing currently protects endpoints from abuse or accidental traffic spikes eating Spotify's rate limit |
+| Redis cache | Hot reads (precomputed match scores especially) currently hit Postgres every time, with nothing absorbing repeats |
+| Job queue + Spotify sync worker | The OAuth callback currently blocks on 9 sequential Spotify calls before it can respond; one slow/failed call currently stalls the whole request |
+| Score precomputation worker | `getFriendSuggestions` currently recomputes every pairwise score live, on every page load — O(N) per request, O(N²) system-wide |
+| Postgres read replica | Read-heavy pages (Discover, event feeds) currently compete with writes for the same database connections |
+| Object storage + CDN | Profile photos currently hotlink Spotify's CDN directly, which is why the "stale URL" bug happened at all — the app owns none of its own image availability |
+
